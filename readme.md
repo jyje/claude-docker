@@ -31,7 +31,7 @@
 - [Quick Start & Basic Usage](docs/getting-started.md) - Environment setup, Docker usage, API authentication, Quick Test
 
 **Advanced Guides**
-- [Headless CLI Pipeline](docs/headless-pipeline.md) - Argo Workflows, Kubernetes Jobs/CronJobs, CI/CD integration
+- [Advanced Guide](docs/advanced-guide.md) - Argo Workflows, Kubernetes Jobs/CronJobs, CI/CD integration
 
 ## Environment Variables
 

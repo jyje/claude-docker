@@ -72,7 +72,7 @@ mkdir -p ~/.claude
 echo '{"apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""}' > ~/.claude/settings.json
 ```
 
-Claude가 이 helper를 통해 키를 읽어 OAuth를 우회합니다. 커스텀 이미지 예제는 [Headless CLI 파이프라인](headless-pipeline-ko.md) 참조.
+Claude가 이 helper를 통해 키를 읽어 OAuth를 우회합니다. 커스텀 이미지 예제는 [고급 가이드](advanced-guide-ko.md) 참조.
 
 ## 네트워크 샌드박스
 
@@ -87,7 +87,7 @@ sudo /usr/local/bin/init-firewall.sh
 
 ## 고급: Kubernetes, CI/CD, Argo Workflows
 
-Kubernetes 사이드카, Argo Workflows, Jobs, CronJobs, CI/CD 통합은 [Headless CLI 파이프라인](headless-pipeline-ko.md) 가이드를 참조하세요.
+Kubernetes 사이드카, Argo Workflows, Jobs, CronJobs, CI/CD 통합은 [고급 가이드](advanced-guide-ko.md) 가이드를 참조하세요.
 
 ## 다음 단계
 

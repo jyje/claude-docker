@@ -31,7 +31,7 @@
 - [한국어 시작 가이드](docs/getting-started-ko.md) - 빠른 시작, 환경 설정, 기본 사용법, 인증, 빠른 테스트
 
 **고급 가이드**
-- [Headless CLI 파이프라인](docs/headless-pipeline-ko.md) - Argo Workflows, Kubernetes Jobs/CronJobs, CI/CD 통합
+- [고급 가이드](docs/advanced-guide-ko.md) - Argo Workflows, Kubernetes Jobs/CronJobs, CI/CD 통합
 
 ## 환경 변수
 

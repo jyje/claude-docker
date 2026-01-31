@@ -73,7 +73,7 @@ mkdir -p ~/.claude
 echo '{"apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""}' > ~/.claude/settings.json
 ```
 
-Claude reads the key via this helper, bypassing OAuth. For custom images, see [Headless CLI Pipeline](headless-pipeline.md) for Dockerfile examples.
+Claude reads the key via this helper, bypassing OAuth. For custom images, see [Advanced Guide](advanced-guide.md) for Dockerfile examples.
 
 ## Network Sandbox
 
@@ -88,7 +88,7 @@ sudo /usr/local/bin/init-firewall.sh
 
 ## Advanced: Kubernetes, CI/CD, Argo Workflows
 
-For Kubernetes sidecars, Argo Workflows, Jobs, CronJobs, and CI/CD integration, see the [Headless CLI Pipeline](headless-pipeline.md) guide.
+For Kubernetes sidecars, Argo Workflows, Jobs, CronJobs, and CI/CD integration, see the [Advanced Guide](advanced-guide.md) guide.
 
 ## Next Steps
 
