@@ -21,6 +21,10 @@
 > [!IMPORTANT]
 > This repository is not affiliated with Anthropic. This is a community-maintained project that provides a Docker image for Claude Code users. For official information, visit [docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code).
 
+> [!NOTE]
+> **Based on Official Anthropic Dockerfile**  
+> This Docker image is built upon the [official Anthropic Claude Code devcontainer Dockerfile](https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile), with enhancements for community use including Node.js 24, automated CI/CD pipelines, and multi-architecture support.
+
 ## 📚 Documentation
 
 - **[Getting Started Guide](getting-started.md)** - Quick start, environment setup, basic usage, and authentication

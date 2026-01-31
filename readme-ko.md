@@ -21,6 +21,10 @@
 > [!IMPORTANT]
 > 이 레포지토리는 Anthropic과 제휴 관계가 없습니다. Claude Code 사용자를 위한 도커 이미지를 제공하는 커뮤니티 프로젝트입니다. 공식 정보는 [docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code)을 참조하세요.
 
+> [!NOTE]
+> **Anthropic 공식 Dockerfile 기반**  
+> 이 도커 이미지는 [Anthropic 공식 Claude Code devcontainer Dockerfile](https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile)을 기반으로 하며, Node.js 24, 자동화된 CI/CD 파이프라인, 멀티 아키텍처 지원 등 커뮤니티 사용을 위한 개선사항이 추가되었습니다.
+
 ## 📚 문서
 
 - **[Getting Started Guide](getting-started.md)** - Quick start, environment setup, basic usage, and authentication
