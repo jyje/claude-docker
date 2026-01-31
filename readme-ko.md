@@ -1,6 +1,6 @@
 <div align="center">
   
-  # jyje/claude-code
+  # jyje/claude-docker
   
   <!-- center logo -->
   <img width="250" src="https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F30f875f5a86900e58245d55d0e1d4f7f6456ac73-2560x1440.png&w=3840&q=75" alt="Claude" title="Claude"/>

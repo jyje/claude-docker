@@ -1,6 +1,6 @@
 <div align="center">
   
-  # jyje/claude-code
+  # jyje/claude-docker
   
   <!-- center logo -->
   <img width="250" src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-png/light/claude-color.png" alt="Claude" title="Claude"/>

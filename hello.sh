@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "=================================================="
-echo "🤖 jyje/claude-code: Community Claude Code Image"
+echo "🤖 jyje/claude-docker: Community Claude Code Image"
 echo ""
 echo "Welcome to the Claude Code community image! This is a community-maintained"
 echo "project that provides a Docker image for Claude Code users. Based on the"
