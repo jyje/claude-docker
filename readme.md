@@ -27,8 +27,11 @@
 
 ## 📚 Documentation
 
-- **[Getting Started Guide](getting-started.md)** - Quick start, environment setup, basic usage, and authentication
-- **[한국어 시작 가이드](getting-started-ko.md)** - 빠른 시작, 환경 설정, 기본 사용법 및 인증
+**Getting Started**
+- [Quick Start & Basic Usage](docs/getting-started.md) - Environment setup, Docker usage, API authentication, Quick Test
+
+**Advanced Guides**
+- [Headless CLI Pipeline](docs/headless-pipeline.md) - Argo Workflows, Kubernetes Jobs/CronJobs, CI/CD integration
 
 ## Environment Variables
 
@@ -38,7 +41,7 @@
 | `ANTHROPIC_BASE_URL` | No | Custom API endpoint URL. Use for local models (e.g., Docker Model Runner) or custom endpoints |
 
 > [!TIP]
-> For detailed usage examples including Docker, Kubernetes, and API key authentication, see the **[Getting Started Guide](getting-started.md)**.
+> For detailed usage examples including Docker, Kubernetes, and API key authentication, see the **[Getting Started Guide](docs/getting-started.md)**.
 
 ## Pre-installed Utilities
 

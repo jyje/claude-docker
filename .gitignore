@@ -5,10 +5,15 @@ node_modules/
 .env
 .env.local
 .env.*.local
+api-key
 
 # Logs
 *.log
 npm-debug.log*
+
+# Test outputs
+test-output.txt
+*-test.log
 
 # OS files
 .DS_Store
