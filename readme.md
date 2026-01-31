@@ -115,6 +115,73 @@ docker run --rm -it \
   claude
 ```
 
+## API Key Authentication (No Login Required)
+
+Claude Code can use your API key directly without OAuth browser login. This is the most stable approach for Docker containers.
+
+### Setup API Key Helper
+
+Create a settings file that tells Claude Code to use the `ANTHROPIC_API_KEY` environment variable:
+
+```bash
+# Inside the container (or add to Dockerfile)
+mkdir -p ~/.claude
+
+cat > ~/.claude/settings.json <<'JSON'
+{
+  "apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""
+}
+JSON
+```
+
+### Complete Example
+
+```bash
+# 1. Export your API key on host
+export ANTHROPIC_API_KEY="sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# 2. Run container with API key
+docker run --rm -it \
+  -e ANTHROPIC_API_KEY \
+  -v $(pwd):/workspace \
+  ghcr.io/jyje/claude-docker bash
+
+# 3. Inside container, setup API key helper (one-time)
+mkdir -p ~/.claude
+echo '{"apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""}' > ~/.claude/settings.json
+
+# 4. Run Claude Code - no login required!
+claude
+```
+
+### Why This Works
+
+- Claude Code reads the `apiKeyHelper` command from `~/.claude/settings.json`
+- The helper command outputs the value of `$ANTHROPIC_API_KEY`
+- This bypasses OAuth login flow entirely
+- Ideal for CI/CD, containers, and headless environments
+
+### Dockerfile Integration
+
+To bake this into your own image based on `jyje/claude-docker`:
+
+```dockerfile
+FROM ghcr.io/jyje/claude-docker:latest
+
+# Pre-configure API key helper for node user
+USER node
+RUN mkdir -p /home/node/.claude && \
+    echo '{"apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""}' > /home/node/.claude/settings.json
+
+# Your additional setup...
+```
+
+### References
+
+- [Docker AI Sandboxes: Claude Code](https://docs.docker.com/ai/sandboxes/claude-code/)
+- [Stack Overflow: Using Claude Code with API Key](https://stackoverflow.com/questions/79629224/how-do-i-use-claude-code-with-an-existing-anthropic-api-key)
+- [Anthropic API Documentation](https://docs.n8n.io/integrations/builtin/credentials/anthropic/)
+
 ## Pre-installed Utilities
 
 This image provides the following utilities pre-installed:
