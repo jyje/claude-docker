@@ -122,11 +122,11 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.init.outputs.image_version }}
-          name: "Claude Code ${{ needs.init.outputs.image_version }}"
+          name: "Claude Docker ${{ needs.init.outputs.image_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            ## Claude Code Community Docker Image
-
+            ## Claude Docker: Community Docker Image
+            
             This release contains Claude Code version ${{ needs.init.outputs.image_version }}.
 
             ### Usage
