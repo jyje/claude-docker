@@ -1,0 +1,141 @@
+name: ci-main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ci-main.yaml
+      - Dockerfile
+      - package.json
+      - init-firewall.sh
+      - hello.sh
+
+jobs:
+  init:
+    name: 🧐 Initialize
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      skip_ci: ${{ steps.check_flag.outputs.skip_ci }}
+      image_version: ${{ steps.check_tag.outputs.image_version }}
+      tag_exists: ${{ steps.check_tag.outputs.tag_exists }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for --no-ci flag in commit message
+        id: check_flag
+        run: |
+          echo "Checking commit message for --no-ci flag..."
+          if echo "${{ github.event.head_commit.message }}" | grep -- '--no-ci'; then
+            echo "Skipping CI"
+            echo "skip_ci=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_ci=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check release tag
+        id: check_tag
+        run: |
+          VERSION=$(cat package.json | jq -r '.dependencies["@anthropic-ai/claude-code"]')
+          echo "image_version=v${VERSION}" >> $GITHUB_OUTPUT
+      
+          export TAG_NAME="v${VERSION}"
+          if ! [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag $TAG_NAME does not meet the required format 'vX.Y.Z'."
+            exit 1
+          fi
+
+          git fetch --unshallow --tags
+          export TAG_EXISTS=$(git tag --list $TAG_NAME)
+          if [ -n "$TAG_EXISTS" ]; then
+            echo "Tag $TAG_NAME already exists."
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    name: 🏗️ Build
+    needs: init
+    if: ${{ needs.init.outputs.skip_ci == 'false' && needs.init.outputs.tag_exists == 'false' }}
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Claude Code version
+        id: version
+        run: |
+          VERSION=$(cat package.json | jq -r '.dependencies["@anthropic-ai/claude-code"]')
+          echo "claude_version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build/Publish as GitHub Package
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          build-args: |
+            CLAUDE_CODE_VERSION=${{ steps.version.outputs.claude_version }}
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
+          # Multi-arch annotations for ghcr.io package page
+          annotations: |
+            index:org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            index:org.opencontainers.image.description=Community-maintained Claude Code Docker Image (Node.js 24)
+            index:org.opencontainers.image.licenses=MIT
+            index:org.opencontainers.image.title=${{ github.repository }}
+            index:org.opencontainers.image.url=https://github.com/${{ github.repository }}
+
+      - name: Test image
+        run: |
+          docker run -i ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }} claude --version
+
+  release:
+    name: 🚀 Release
+    needs: [ init, build ]
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Set version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          tag_prefix: ""
+          custom_tag: ${{ needs.init.outputs.image_version }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.init.outputs.image_version }}
+          name: "Claude Code ${{ needs.init.outputs.image_version }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            ## Claude Code Community Docker Image
+
+            This release contains Claude Code version ${{ needs.init.outputs.image_version }}.
+
+            ### Usage
+
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
+            docker run --rm -it -e ANTHROPIC_API_KEY -v $(pwd):/workspace ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
+            ```
+
+            ### Changelog
+
+            ${{ steps.tag_version.outputs.changelog }}

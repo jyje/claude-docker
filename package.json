@@ -1,0 +1,22 @@
+{
+  "name": "claude-docker",
+  "version": "1.0.0",
+  "description": "Community-maintained Claude Code Docker Image",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jyje/claude-docker.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "docker",
+    "ai",
+    "coding-assistant"
+  ],
+  "author": "jyje",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.23"
+  }
+}
