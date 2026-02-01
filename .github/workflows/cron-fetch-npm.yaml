@@ -78,8 +78,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b version/${{ env.NEW_VERSION }} main
           
-          # Update package.json with new version
-          jq '.dependencies["@anthropic-ai/claude-code"] = "${{ env.NEW_VERSION }}"' package.json > package.json.tmp
+          # Update package.json: dependencies and version
+          jq '.dependencies["@anthropic-ai/claude-code"] = "${{ env.NEW_VERSION }}" | .version = "${{ env.NEW_VERSION }}"' package.json > package.json.tmp
           mv package.json.tmp package.json
           
           # Update Dockerfile ARG default value for reproducibility
