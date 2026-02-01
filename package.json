@@ -17,6 +17,6 @@
   "author": "jyje",
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/claude-code": "2.1.27"
+    "@anthropic-ai/claude-code": "2.1.29"
   }
 }
