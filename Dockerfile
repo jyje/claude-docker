@@ -1,4 +1,4 @@
-FROM node:24-slim
+FROM node:25-slim
 
 # OCI Labels (Community Image)
 LABEL org.opencontainers.image.title="jyje/claude-docker"
