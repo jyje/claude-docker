@@ -31,8 +31,9 @@ jobs:
         run: |
           git fetch --unshallow --tags
           git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u > tagged_versions.txt
-          # Only consider major version v2 and above (skip v0, v1)
-          awk -F. '$1+0 >= 2' npm_versions.txt | sort -u > n.txt
+          # Only consider v2.0.65+ (CVE-2026-21852 fixed; no known CVEs from 2.0.65)
+          (cat npm_versions.txt; echo "2.0.65") | sort -V | uniq | awk 'BEGIN{found=0} /^2\.0\.65$/{found=1} found{print}' | sort -u > n.txt
+          echo "Considering $(wc -l < n.txt) npm versions (>= 2.0.65)"
           sort -u tagged_versions.txt > t.txt
           comm -23 n.txt t.txt > missing_versions.txt
           TARGET_VERSION=$(sort -V missing_versions.txt | head -n 1)
@@ -99,7 +100,8 @@ jobs:
       - name: Create PR
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
         run: |
-          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\nCo-authored-by: jyje <jyjeon@outlook.com>" "${{ env.TARGET_VERSION }}")
+          MISSING_CHECKLIST=$(while IFS= read -r v; do echo "- [ ] v$v"; done < missing_versions.txt)
+          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\n### Upstream versions not yet built\n\n%s\n\nCo-authored-by: jyje <jyjeon@outlook.com>" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
           gh pr create \
             --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
             --body "$PR_BODY" \
