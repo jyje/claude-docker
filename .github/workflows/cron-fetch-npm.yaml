@@ -44,20 +44,27 @@ jobs:
             echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
           fi
 
-      - name: Check for existing PR
+      - name: Check for existing PR and open version PRs
         if: env.UPDATE_NEEDED == 'true'
         id: check_pr
         run: |
           PR_TITLE="[v${{ env.TARGET_VERSION }}] update claude-code version"
-          gh pr list --search "$PR_TITLE" --json title > pr_list.json
-          jq -e ".[] | select(.title == \"$PR_TITLE\")" pr_list.json && \
-            echo "PR_EXISTS=true" >> $GITHUB_ENV || \
-            echo "PR_EXISTS=false" >> $GITHUB_ENV
+          gh pr list --state open --base main --json title > pr_list.json
+          # PR for this specific version already open?
+          jq -e ".[] | select(.title == \"$PR_TITLE\")" pr_list.json >/dev/null 2>&1 && \
+            echo "PR_EXISTS=true" >> $GITHUB_ENV || echo "PR_EXISTS=false" >> $GITHUB_ENV
+          # Any open version PR (avoid multiple open version PRs → merge conflicts when one is merged)
+          OPEN_COUNT=$(jq -r '.[].title' pr_list.json | grep -cE '^\[v[0-9]+\.[0-9]+\.[0-9]+\] update claude-code version$' || true)
+          if [ "${OPEN_COUNT:-0}" -ge 1 ]; then
+            echo "HAS_OPEN_VERSION_PR=true" >> $GITHUB_ENV
+          else
+            echo "HAS_OPEN_VERSION_PR=false" >> $GITHUB_ENV
+          fi
 
       - name: Check for existing tag
         uses: Wandalen/wretry.action@v3
         id: check_tag
-        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false'
+        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false'
         with:
           attempt_limit: 3
           attempt_delay: 10000
@@ -71,7 +78,7 @@ jobs:
             fi
 
       - name: Create new branch and update version
-        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.TAG_EXISTS == 'false'
+        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -89,7 +96,7 @@ jobs:
           git push origin version/${{ env.TARGET_VERSION }}
 
       - name: Create PR
-        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.TAG_EXISTS == 'false'
+        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
         run: |
           gh pr create \
             --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
