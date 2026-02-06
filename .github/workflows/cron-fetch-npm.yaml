@@ -31,7 +31,8 @@ jobs:
         run: |
           git fetch --unshallow --tags
           git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u > tagged_versions.txt
-          sort -u npm_versions.txt > n.txt
+          # Only consider major version v2 and above (skip v0, v1)
+          awk -F. '$1+0 >= 2' npm_versions.txt | sort -u > n.txt
           sort -u tagged_versions.txt > t.txt
           comm -23 n.txt t.txt > missing_versions.txt
           TARGET_VERSION=$(sort -V missing_versions.txt | head -n 1)
