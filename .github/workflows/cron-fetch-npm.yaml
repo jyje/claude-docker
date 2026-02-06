@@ -31,9 +31,9 @@ jobs:
         run: |
           git fetch --unshallow --tags
           git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u > tagged_versions.txt
-          # Only consider v2.0.74+ (CVE-2026-21852 + command parsing bypass fixed; Dependabot)
-          (cat npm_versions.txt; echo "2.0.74") | sort -V | uniq | awk 'BEGIN{found=0} /^2\.0\.74$/{found=1} found{print}' | sort -u > n.txt
-          echo "Considering $(wc -l < n.txt) npm versions (>= 2.0.74)"
+          # Only consider v2.1.34+ (current latest tag as minimum)
+          (cat npm_versions.txt; echo "2.1.34") | sort -V | uniq | awk 'BEGIN{found=0} /^2\.1\.34$/{found=1} found{print}' | sort -u > n.txt
+          echo "Considering $(wc -l < n.txt) npm versions (>= 2.1.34)"
           sort -u tagged_versions.txt > t.txt
           comm -23 n.txt t.txt > missing_versions.txt
           TARGET_VERSION=$(sort -V missing_versions.txt | head -n 1)
