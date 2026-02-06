@@ -99,8 +99,9 @@ jobs:
       - name: Create PR
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
         run: |
+          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\nCo-authored-by: jyje <jyjeon@outlook.com>" "${{ env.TARGET_VERSION }}")
           gh pr create \
             --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
-            --body "Automatically created PR to update Claude Code version to v${{ env.TARGET_VERSION }}" \
+            --body "$PR_BODY" \
             --base main \
             --head version/${{ env.TARGET_VERSION }}
