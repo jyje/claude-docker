@@ -20,28 +20,27 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Check for new Claude Code version
-        id: check_version
+      - name: Fetch all NPM versions
+        id: npm_versions
         run: |
-          NEW_VERSION=$(npm view @anthropic-ai/claude-code version)
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "Found latest version: $NEW_VERSION"
+          npm view @anthropic-ai/claude-code versions --json | jq -r '.[]' > npm_versions.txt
+          echo "Fetched $(wc -l < npm_versions.txt) versions from npm"
 
-      - name: Get current version
-        id: current_version
+      - name: Find oldest missing version vs git tags
+        id: pick_oldest
         run: |
-          CURRENT_VERSION=$(cat package.json | jq -r '.dependencies["@anthropic-ai/claude-code"]')
-          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
-          echo "Current version: $CURRENT_VERSION"
-
-      - name: Check if update needed
-        id: check_update
-        run: |
-          if [ "$NEW_VERSION" = "$CURRENT_VERSION" ]; then
-            echo "Version is already up to date: $CURRENT_VERSION"
+          git fetch --unshallow --tags
+          git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u > tagged_versions.txt
+          sort -u npm_versions.txt > n.txt
+          sort -u tagged_versions.txt > t.txt
+          comm -23 n.txt t.txt > missing_versions.txt
+          TARGET_VERSION=$(sort -V missing_versions.txt | head -n 1)
+          if [ -z "$TARGET_VERSION" ]; then
+            echo "No missing versions; all npm versions have a tag."
             echo "UPDATE_NEEDED=false" >> $GITHUB_ENV
           else
-            echo "Update available: $CURRENT_VERSION -> $NEW_VERSION"
+            echo "Oldest missing version: $TARGET_VERSION"
+            echo "TARGET_VERSION=$TARGET_VERSION" >> $GITHUB_ENV
             echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
           fi
 
@@ -49,7 +48,7 @@ jobs:
         if: env.UPDATE_NEEDED == 'true'
         id: check_pr
         run: |
-          PR_TITLE="[v${{ env.NEW_VERSION }}] update claude-code version"
+          PR_TITLE="[v${{ env.TARGET_VERSION }}] update claude-code version"
           gh pr list --search "$PR_TITLE" --json title > pr_list.json
           jq -e ".[] | select(.title == \"$PR_TITLE\")" pr_list.json && \
             echo "PR_EXISTS=true" >> $GITHUB_ENV || \
@@ -64,7 +63,7 @@ jobs:
           attempt_delay: 10000
           command: |
             git fetch --unshallow --tags
-            git tag --list "v${{ env.NEW_VERSION }}" > tag_list.txt
+            git tag --list "v${{ env.TARGET_VERSION }}" > tag_list.txt
             if [ -s tag_list.txt ]; then
               echo "TAG_EXISTS=true" >> $GITHUB_ENV
             else
@@ -76,24 +75,24 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b version/${{ env.NEW_VERSION }} main
+          git checkout -b version/${{ env.TARGET_VERSION }} main
           
           # Update package.json: dependencies and version
-          jq '.dependencies["@anthropic-ai/claude-code"] = "${{ env.NEW_VERSION }}" | .version = "${{ env.NEW_VERSION }}"' package.json > package.json.tmp
+          jq '.dependencies["@anthropic-ai/claude-code"] = "${{ env.TARGET_VERSION }}" | .version = "${{ env.TARGET_VERSION }}"' package.json > package.json.tmp
           mv package.json.tmp package.json
           
           # Update Dockerfile ARG default value for reproducibility
-          sed -i "s/^ARG CLAUDE_CODE_VERSION=.*/ARG CLAUDE_CODE_VERSION=${{ env.NEW_VERSION }}/" Dockerfile
+          sed -i "s/^ARG CLAUDE_CODE_VERSION=.*/ARG CLAUDE_CODE_VERSION=${{ env.TARGET_VERSION }}/" Dockerfile
           
           git add package.json Dockerfile
-          git commit -m "✨ version: for v${{ env.NEW_VERSION }}" --allow-empty
-          git push origin version/${{ env.NEW_VERSION }}
+          git commit -m "✨ version: for v${{ env.TARGET_VERSION }}" --allow-empty
+          git push origin version/${{ env.TARGET_VERSION }}
 
       - name: Create PR
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.TAG_EXISTS == 'false'
         run: |
           gh pr create \
-            --title "[v${{ env.NEW_VERSION }}] update claude-code version" \
-            --body "Automatically created PR to update Claude Code version to v${{ env.NEW_VERSION }}" \
+            --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
+            --body "Automatically created PR to update Claude Code version to v${{ env.TARGET_VERSION }}" \
             --base main \
-            --head version/${{ env.NEW_VERSION }}
+            --head version/${{ env.TARGET_VERSION }}
