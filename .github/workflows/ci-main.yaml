@@ -109,6 +109,8 @@ jobs:
     name: 🚀 Release
     needs: [ init, build ]
     runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
     steps:
       - name: Set version and push tag
         id: tag_version
