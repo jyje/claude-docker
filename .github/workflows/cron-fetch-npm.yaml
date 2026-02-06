@@ -69,7 +69,7 @@ jobs:
           attempt_limit: 3
           attempt_delay: 10000
           command: |
-            git fetch --unshallow --tags
+            git fetch --tags
             git tag --list "v${{ env.TARGET_VERSION }}" > tag_list.txt
             if [ -s tag_list.txt ]; then
               echo "TAG_EXISTS=true" >> $GITHUB_ENV
