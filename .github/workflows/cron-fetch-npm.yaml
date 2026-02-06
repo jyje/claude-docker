@@ -100,8 +100,8 @@ jobs:
       - name: Create PR
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
         run: |
-          MISSING_CHECKLIST=$(while IFS= read -r v; do echo "- [ ] v$v"; done < missing_versions.txt)
-          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\n### Upstream versions not yet built\n\n%s\n\nCo-authored-by: jyje <jyjeon@outlook.com>" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
+          MISSING_CHECKLIST=$(sort -V missing_versions.txt | while IFS= read -r v; do echo "- [ ] v$v"; done)
+          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
           gh pr create \
             --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
             --body "$PR_BODY" \
