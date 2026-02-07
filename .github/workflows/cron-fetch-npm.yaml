@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-24.04-arm
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      UPDATE_NEEDED: 'false'
+      TARGET_VERSION: ''
+      PR_EXISTS: 'false'
+      HAS_OPEN_VERSION_PR: 'false'
+      TAG_EXISTS: 'false'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -106,4 +111,6 @@ jobs:
             --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
             --body "$PR_BODY" \
             --base main \
-            --head version/${{ env.TARGET_VERSION }}
+            --head version/${{ env.TARGET_VERSION }} \
+            --assignee "${{ github.repository_owner }}" \
+            --reviewer "${{ github.repository_owner }}"
