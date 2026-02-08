@@ -112,5 +112,4 @@ jobs:
             --body "$PR_BODY" \
             --base main \
             --head version/${{ env.TARGET_VERSION }} \
-            --assignee "${{ github.repository_owner }}" \
-            --reviewer "${{ github.repository_owner }}"
+            --assignee "${{ github.repository_owner }}"
