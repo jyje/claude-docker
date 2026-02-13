@@ -1,6 +1,6 @@
 {
   "name": "claude-docker",
-  "version": "2.1.41",
+  "version": "2.1.42",
   "description": "Community-maintained Claude Code Docker Image",
   "repository": {
     "type": "git",
@@ -17,6 +17,6 @@
   "author": "jyje",
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/claude-code": "2.1.41"
+    "@anthropic-ai/claude-code": "2.1.42"
   }
 }
