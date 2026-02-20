@@ -11,7 +11,7 @@ LABEL org.opencontainers.image.base.name="docker.io/library/node:24-slim"
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.47
+ARG CLAUDE_CODE_VERSION=2.1.48
 
 # Install basic development tools and iptables/ipset
 RUN apt-get update && apt-get install -y --no-install-recommends \
