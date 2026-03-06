@@ -60,7 +60,7 @@ jobs:
           echo "claude_version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Build/Publish as GitHub Package
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
