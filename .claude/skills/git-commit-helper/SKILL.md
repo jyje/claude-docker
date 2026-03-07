@@ -20,13 +20,10 @@ When the user requests a git commit or help with a commit message, follow these 
 <gitmoji> <type>(<domain>): <title>
 
 <description>
-
-Co-Authored-By: Cursor Agent <cursoragent@cursor.com>
 ```
 
 - **Title**: Concise, imperative mood, lowercase after the type.
 - **Description**: Optional, explain "why" or provide context.
-- **Co-Authored-By**: Always include `Co-Authored-By: Cursor Agent <cursoragent@cursor.com>`.
 
 ### Gitmoji & Type Mapping
 
