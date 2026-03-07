@@ -119,3 +119,10 @@ Configure CORS settings to restrict allowed origins.
 
 Correct "gitmodi" to "gitmoji" in documentation.
 ```
+
+### Version update
+```
+⬆️ dep(claude): update claude version to latest
+
+Upgrade the underlying Claude model or software version to the newest release.
+```

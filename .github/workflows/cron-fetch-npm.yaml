@@ -55,13 +55,13 @@ jobs:
         if: env.UPDATE_NEEDED == 'true'
         id: check_pr
         run: |
-          PR_TITLE="[v${{ env.TARGET_VERSION }}] update claude-code version"
+          PR_TITLE="⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}"
           gh pr list --state open --base main --json title > pr_list.json
           # PR for this specific version already open?
           jq -e ".[] | select(.title == \"$PR_TITLE\")" pr_list.json >/dev/null 2>&1 && \
             echo "PR_EXISTS=true" >> $GITHUB_ENV || echo "PR_EXISTS=false" >> $GITHUB_ENV
           # Any open version PR (avoid multiple open version PRs → merge conflicts when one is merged)
-          OPEN_COUNT=$(jq -r '.[].title' pr_list.json | grep -cE '^\[v[0-9]+\.[0-9]+\.[0-9]+\] update claude-code version$' || true)
+          OPEN_COUNT=$(jq -r '.[].title' pr_list.json | grep -cE '^⬆️ dep\(claude\): update claude version to v[0-9]+\.[0-9]+\.[0-9]+$' || true)
           if [ "${OPEN_COUNT:-0}" -ge 1 ]; then
             echo "HAS_OPEN_VERSION_PR=true" >> $GITHUB_ENV
           else
@@ -99,7 +99,7 @@ jobs:
           sed -i "s/^ARG CLAUDE_CODE_VERSION=.*/ARG CLAUDE_CODE_VERSION=${{ env.TARGET_VERSION }}/" Dockerfile
           
           git add package.json Dockerfile
-          git commit -m "✨ version: for v${{ env.TARGET_VERSION }}" --allow-empty
+          git commit -m "⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}" -m "Upgrade the underlying Claude model or software version to the newest release." --allow-empty
           git push origin version/${{ env.TARGET_VERSION }}
 
       - name: Create PR
@@ -108,7 +108,7 @@ jobs:
           MISSING_CHECKLIST=$(sort -V missing_versions.txt | while IFS= read -r v; do echo "- [ ] v$v"; done)
           PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
           gh pr create \
-            --title "[v${{ env.TARGET_VERSION }}] update claude-code version" \
+            --title "⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}" \
             --body "$PR_BODY" \
             --base main \
             --head version/${{ env.TARGET_VERSION }} \
