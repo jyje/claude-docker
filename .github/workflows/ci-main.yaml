@@ -21,6 +21,7 @@ jobs:
       image_major: ${{ steps.check_tag.outputs.image_major }}
       image_minor: ${{ steps.check_tag.outputs.image_minor }}
       tag_exists: ${{ steps.check_tag.outputs.tag_exists }}
+      is_latest: ${{ steps.check_tag.outputs.is_latest }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -58,6 +59,16 @@ jobs:
           else
             echo "tag_exists=false" >> $GITHUB_OUTPUT
           fi
+          
+          # Check if this is the absolute latest version
+          LATEST_VERSION=$( (git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; echo "$VERSION") | sort -V | tail -n 1 )
+          if [ "$VERSION" = "$LATEST_VERSION" ]; then
+            echo "Version $VERSION is the absolute latest. Will apply 'latest' along with major/minor tags."
+            echo "is_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION is older. The currently highest is $LATEST_VERSION. Will only tag $TAG_NAME."
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          fi
 
   build:
     name: 🏗️ Build
@@ -84,6 +95,16 @@ jobs:
           VERSION=$(cat package.json | jq -r '.dependencies["@anthropic-ai/claude-code"]')
           echo "claude_version=${VERSION}" >> $GITHUB_OUTPUT
 
+      - name: Set Docker tags
+        id: docker_tags
+        run: |
+          DOCKER_IMAGE="ghcr.io/${{ github.repository }}"
+          TAGS="${DOCKER_IMAGE}:${{ needs.init.outputs.image_version }}"
+          if [ "${{ needs.init.outputs.is_latest }}" = "true" ]; then
+            TAGS="${TAGS},${DOCKER_IMAGE}:latest,${DOCKER_IMAGE}:${{ needs.init.outputs.image_major }},${DOCKER_IMAGE}:${{ needs.init.outputs.image_minor }}"
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
       - name: Build/Publish as GitHub Package
         uses: docker/build-push-action@v7
         with:
@@ -94,11 +115,7 @@ jobs:
           provenance: false
           build-args: |
             CLAUDE_CODE_VERSION=${{ steps.version.outputs.claude_version }}
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_major }}
-            ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_minor }}
+          tags: ${{ steps.docker_tags.outputs.tags }}
           # Multi-arch annotations for ghcr.io package page
           annotations: |
             index:org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -133,32 +150,53 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
 
+      - name: Generate Release Body
+        id: release_body
+        run: |
+          BODY_FILE="release_body.md"
+          cat <<EOF > $BODY_FILE
+          ## Claude Docker: Community Docker Image
+          
+          This release contains Claude Code version ${{ needs.init.outputs.image_version }}.
+
+          Available image tags for this release:
+          - \`${{ needs.init.outputs.image_version }}\`
+          EOF
+          
+          if [ "${{ needs.init.outputs.is_latest }}" = "true" ]; then
+            cat <<EOF >> $BODY_FILE
+          - \`${{ needs.init.outputs.image_major }}\`
+          - \`${{ needs.init.outputs.image_minor }}\`
+          - \`latest\`
+          EOF
+          else
+            cat <<EOF >> $BODY_FILE
+          
+          > **Note**: This is a patch release for an older version. The \`${{ needs.init.outputs.image_major }}\`, \`${{ needs.init.outputs.image_minor }}\`, and \`latest\` tags were not assigned to this image to prevent overriding newer versions.
+          EOF
+          fi
+          
+          cat <<EOF >> $BODY_FILE
+
+          ### Usage
+
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
+          docker run --rm -it -e ANTHROPIC_API_KEY -v \$(pwd):/workspace ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
+          \`\`\`
+
+          ### Changelog
+
+          ${{ steps.tag_version.outputs.changelog }}
+          EOF
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.init.outputs.image_version }}
           name: "Claude Docker ${{ needs.init.outputs.image_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: |
-            ## Claude Docker: Community Docker Image
-            
-            This release contains Claude Code version ${{ needs.init.outputs.image_version }}.
-
-            Available image tags for this release:
-            - `${{ needs.init.outputs.image_major }}`
-            - `${{ needs.init.outputs.image_minor }}`
-            - `${{ needs.init.outputs.image_version }}`
-
-            ### Usage
-
-            ```bash
-            docker pull ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
-            docker run --rm -it -e ANTHROPIC_API_KEY -v $(pwd):/workspace ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
-            ```
-
-            ### Changelog
-
-            ${{ steps.tag_version.outputs.changelog }}
+          bodyFile: "release_body.md"
 
   cleanup:
     name: 🧹 Cleanup
