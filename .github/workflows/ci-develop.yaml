@@ -50,8 +50,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Constants
+        run: |
+          echo "DEV_IMAGE_HASH_LENGTH=20" >> $GITHUB_ENV
+          echo "DEV_IMAGE_WINDOW_SIZE=20" >> $GITHUB_ENV
+
       - name: Extract short SHA
-        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-${DEV_IMAGE_HASH_LENGTH})" >> $GITHUB_ENV
 
       - name: Extract Claude Code version
         id: version
@@ -83,3 +88,34 @@ jobs:
       - name: Test image
         run: |
           docker run -i ghcr.io/${{ github.repository }}-dev:${{ env.SHORT_SHA }} claude --version
+
+      - name: Clean up old dev images
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          PACKAGE_NAME="$(echo '${{ github.repository }}' | cut -d'/' -f2)-dev"
+          
+          # Check if the owner is a user or an organization
+          API_PREFIX="users"
+          if gh api /orgs/$OWNER >/dev/null 2>&1; then
+            API_PREFIX="orgs"
+          fi
+          
+          echo "Looking for versions in /$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME"
+          # Fetch all version IDs sorted by creation date (newest first)
+          VERSIONS=$(gh api -H "Accept: application/vnd.github+json" /$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME/versions --paginate | jq -r 'sort_by(.created_at) | reverse | .[].id')
+          
+          TOTAL=$(echo "$VERSIONS" | wc -w)
+          echo "Total versions found: $TOTAL. Window size is $DEV_IMAGE_WINDOW_SIZE."
+          
+          if [ "$TOTAL" -gt "$DEV_IMAGE_WINDOW_SIZE" ]; then
+            # Exclude the most recent DEV_IMAGE_WINDOW_SIZE items, delete the rest
+            IDS_TO_DELETE=$(echo "$VERSIONS" | tail -n +$((DEV_IMAGE_WINDOW_SIZE + 1)))
+            for id in $IDS_TO_DELETE; do
+              echo "Deleting package version ID: $id"
+              gh api --method DELETE -H "Accept: application/vnd.github+json" /$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME/versions/$id || echo "Failed to delete version ID $id"
+            done
+          else
+            echo "Window size not exceeded. Skipping cleanup."
+          fi
