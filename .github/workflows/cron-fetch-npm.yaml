@@ -100,7 +100,11 @@ jobs:
           sed -i "s/^ARG CLAUDE_CODE_VERSION=.*/ARG CLAUDE_CODE_VERSION=${{ env.TARGET_VERSION }}/" Dockerfile
           
           git add package.json Dockerfile
-          git commit -m "⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}" -m "Upgrade the underlying Claude model or software version to the newest release." --allow-empty
+          git commit \
+            -m "⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}" \
+            -m "Upgrade the underlying Claude model or software version to the newest release." \
+            -m "Co-authored-by: jyje <jyjeon@outlook.com>" \
+            --allow-empty
           git push origin version/${{ env.TARGET_VERSION }}
 
       - name: Create PR
