@@ -3,7 +3,7 @@
   # jyje/claude-docker
   
   <!-- center logo -->
-  <img width="250" src="https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F30f875f5a86900e58245d55d0e1d4f7f6456ac73-2560x1440.png&w=3840&q=75" alt="Claude" title="Claude"/>
+  <img width="150" src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-png/light/claude-color.png" alt="Claude" title="Claude"/>
   
   Claude Code: 커뮤니티 도커 이미지
 
@@ -154,15 +154,22 @@ devcontainer는 자동으로:
 
 ## CI 파이프라인
 
-이 레포지토리는 자동화된 CI 파이프라인을 통해 Claude Code 도커 이미지를 빌드하고 관리합니다:
+이 레포지토리는 자동화된 CI 파이프라인을 통해 두 가지 주요 배포 전략으로 Claude Code 도커 이미지를 빌드하고 관리합니다:
 
-- **자동 빌드**: `main` 브랜치에 커밋되면 도커 이미지가 자동으로 빌드됩니다
-- **멀티 아키텍처 지원**: `linux/amd64`와 `linux/arm64` 아키텍처 모두 지원
-- **버전 관리**: Claude Code npm 패키지 버전을 기반으로 자동 버전 관리
-- **자동 업데이트**: 크론 작업이 12시간마다 새 Claude Code 버전을 확인하고 PR을 자동 생성
-- **품질 보증**: 빌드된 이미지는 자동 테스트를 거칩니다
+### `main` 브랜치 (프로덕션 릴리즈)
+- **자동 실행**: `main` 브랜치에 커밋되면 릴리즈 이미지가 자동으로 빌드 및 배포됩니다.
+- **태그 전략**: 표준 버전 태그(예: `v2.0.0`)를 생성합니다. 구 버전 패치가 현재 배포된 최신 버전을 덮어쓰는 것을 방지하기 위해, 현재 빌드 대상이 절대적인 최신 버전일 때만 `latest` 및 `major`/`minor` 태그를 적용합니다.
+- **릴리즈 노트**: 상세한 변경 사항(Changelog)과 함께 GitHub Release를 자동으로 생성합니다.
 
-커밋 메시지에 `--no-ci` 플래그를 포함하면 CI 파이프라인을 건너뛸 수 있습니다.
+### `develop` 브랜치 (개발용 빌드)
+- **자동 실행**: `develop` 브랜치에 커밋되면 테스트용 이미지가 자동으로 빌드 및 배포됩니다.
+- **태그 전략**: 해시 충돌을 완전히 제거하기 위해 `-dev:[20자리 SHA]` 및 `-dev:latest` 태그를 사용합니다.
+- **스토리지 관리**: 스토리지 공간 최적화를 위해 GHCR에 가장 최근의 개발 이미지 20개만 유지하는 자동 가비지 컬렉션(GC)을 구현했습니다.
+
+### 공통 기능
+- **멀티 아키텍처 지원**: `linux/amd64`와 `linux/arm64` 아키텍처 모두를 지원합니다.
+- **자동 업데이트**: 크론 작업이 6시간마다 새 Claude Code 버전을 확인하고 Pull Request를 자동 생성합니다.
+- **파이프라인 건너뛰기**: 커밋 메시지에 `--no-ci` 플래그를 포함하면 해당 커밋에 대해 CI 파이프라인 실행을 건너뛸 수 있습니다.
 
 ## 기여하기
 

@@ -3,7 +3,7 @@
   # jyje/claude-docker
   
   <!-- center logo -->
-  <img width="250" src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-png/light/claude-color.png" alt="Claude" title="Claude"/>
+  <img width="150" src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-png/light/claude-color.png" alt="Claude" title="Claude"/>
   
   Claude Code: Community-Powered Docker Image
 
@@ -154,15 +154,22 @@ The devcontainer automatically:
 
 ## CI Pipeline
 
-This repository builds and manages Claude Code Docker images through an automated CI pipeline:
+This repository builds and manages Claude Code Docker images through an automated CI pipeline supporting two main deployment strategies:
 
-- **Automated Build**: Docker images are automatically built when commits are made to the `main` branch
-- **Multi-architecture Support**: Supports both `linux/amd64` and `linux/arm64` architectures
-- **Version Control**: Each build is automatically versioned based on Claude Code npm package version
-- **Auto-update**: A cron job checks for new Claude Code versions every 12 hours and creates PRs automatically
-- **Quality Assurance**: Built images undergo automated testing
+### `main` Branch (Production Releases)
+- **Automated Execution**: Commits to the `main` branch automatically build and publish release images.
+- **Tagging Strategy**: Generates standard version tags (e.g., `v2.0.0`). The `latest` and `major`/`minor` tags are only applied if the version is the absolute newest, preventing older patch releases from overriding current deployments.
+- **Release Notes**: Auto-generates GitHub Releases with a detailed changelog.
 
-You can skip the CI pipeline by including the `--no-ci` flag in your commit message.
+### `develop` Branch (Development Builds)
+- **Automated Execution**: Commits to the `develop` branch automatically build and publish testing images.
+- **Tagging Strategy**: Uses `-dev:[20-character SHA]` and `-dev:latest` tags to completely eliminate hash collisions.
+- **Storage Management**: Implements an automated Garbage Collection (GC) that retains only the 20 most recent dev images in GHCR to optimize storage.
+
+### Common Capabilities
+- **Multi-architecture**: Builds support both `linux/amd64` and `linux/arm64`.
+- **Auto-update**: A cron job checks for new Claude Code versions every 6 hours and automatically creates Pull Requests.
+- **Opt-out**: You can skip the CI pipeline for any commit by including the `--no-ci` flag in the commit message.
 
 ## Contributing
 
