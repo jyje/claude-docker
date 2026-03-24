@@ -16,6 +16,8 @@
 
 </div>
 
+⭐ **이 프로젝트가 유용하셨다면 GitHub Star(⭐)를 부탁드립니다!**
+
 🤖 이 레포지토리는 커뮤니티가 제공하는 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 도커 이미지입니다. Node.js 24 기반으로 빌드되었습니다. 지원 아키텍처: `linux/amd64`, `linux/arm64`.
 
 > [!IMPORTANT]

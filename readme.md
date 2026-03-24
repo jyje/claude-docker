@@ -16,6 +16,8 @@
 
 </div>
 
+⭐ **If you found this project useful, please consider giving it a star on GitHub!**
+
 🤖 This repository provides [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Docker images powered by community. Built with Node.js 24. Supported architectures are `linux/amd64`, `linux/arm64`.
 
 > [!IMPORTANT]
