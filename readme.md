@@ -18,14 +18,14 @@
 
 ⭐ **If you found this project useful, please consider giving it a star on GitHub!**
 
-🤖 This repository provides [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Docker images powered by community. Built with Node.js 24. Supported architectures are `linux/amd64`, `linux/arm64`.
+🤖 This repository provides [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Docker images powered by community. Built with Node.js 26. Supported architectures are `linux/amd64`, `linux/arm64`.
 
 > [!IMPORTANT]
 > This repository is not affiliated with Anthropic. This is a community-maintained project that provides a Docker image for Claude Code users. For official information, visit [docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code).
 
 > [!NOTE]
 > **Based on Official Anthropic Dockerfile**  
-> This Docker image is built upon the [official Anthropic Claude Code devcontainer Dockerfile](https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile), with enhancements for community use including Node.js 24, automated CI/CD pipelines, and multi-architecture support.
+> This Docker image is built upon the [official Anthropic Claude Code devcontainer Dockerfile](https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile), with enhancements for community use including Node.js 26, automated CI/CD pipelines, and multi-architecture support.
 
 ## 📚 Documentation
 
@@ -51,7 +51,7 @@ This image provides the following utilities pre-installed:
 
 ```
 - @anthropic-ai/claude-code (latest or specified version)
-- node 24
+- node 26
 - npm
 
 - git + git-delta (diff viewer)
