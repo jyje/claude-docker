@@ -165,8 +165,10 @@ jobs:
           
           if [ "${{ needs.init.outputs.is_latest }}" = "true" ]; then
             cat <<EOF >> $BODY_FILE
-          - \`${{ needs.init.outputs.image_major }}\`
           - \`${{ needs.init.outputs.image_minor }}\`
+          - \`${{ needs.init.outputs.image_major }}\`
+
+          > **Tip**: The \`${{ needs.init.outputs.image_minor }}\` and \`${{ needs.init.outputs.image_major }}\` tags will be updated by future releases in the same version line. For reproducible environments, pinning to the full version tag \`${{ needs.init.outputs.image_version }}\` is recommended.
           EOF
           else
             cat <<EOF >> $BODY_FILE
@@ -183,6 +185,9 @@ jobs:
           docker pull ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
           docker run --rm -it -e ANTHROPIC_API_KEY -v \$(pwd):/workspace ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
           \`\`\`
+
+          ---
+          ⭐ **If you found this project useful, please consider giving it a star on GitHub!**
 
           ### Changelog
 
