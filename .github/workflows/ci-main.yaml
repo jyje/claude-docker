@@ -167,12 +167,11 @@ jobs:
             cat <<EOF >> $BODY_FILE
           - \`${{ needs.init.outputs.image_major }}\`
           - \`${{ needs.init.outputs.image_minor }}\`
-          - \`latest\`
           EOF
           else
             cat <<EOF >> $BODY_FILE
-          
-          > **Note**: This is a patch release for an older version. The \`${{ needs.init.outputs.image_major }}\`, \`${{ needs.init.outputs.image_minor }}\`, and \`latest\` tags were not assigned to this image to prevent overriding newer versions.
+
+          > **Note**: This is a patch release for an older version. The \`${{ needs.init.outputs.image_major }}\` and \`${{ needs.init.outputs.image_minor }}\` tags were not assigned to this image to prevent overriding newer versions.
           EOF
           fi
           
