@@ -14,7 +14,7 @@ on:
 jobs:
   init:
     name: 🧐 Initialize
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     outputs:
       skip_ci: ${{ steps.check_flag.outputs.skip_ci }}
       image_version: ${{ steps.check_tag.outputs.image_version }}
@@ -74,7 +74,7 @@ jobs:
     name: 🏗️ Build
     needs: init
     if: ${{ needs.init.outputs.skip_ci == 'false' && needs.init.outputs.tag_exists == 'false' }}
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -132,7 +132,7 @@ jobs:
   release:
     name: 🚀 Release
     needs: [ init, build ]
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     permissions:
       contents: write
     steps:
@@ -205,7 +205,7 @@ jobs:
   cleanup:
     name: 🧹 Cleanup
     needs: [ release ]
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     permissions:
       contents: write
       pull-requests: read
