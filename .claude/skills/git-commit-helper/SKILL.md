@@ -57,7 +57,7 @@ Commits created entirely by automation (e.g., Dependabot, Renovate) without dire
 | :------ | :--- | :---------- |
 | 🤖      | `ci` | Added automatically by a bot/automation (e.g., Dependabot), not by direct user intervention |
 
-Configure this pairing directly in the automation tool itself, not by hand-editing bot commits after the fact. For Dependabot, set `commit-message` in `dependabot.yml` for every `package-ecosystem` entry:
+Configure this pairing directly in the automation tool itself, not by hand-editing bot commits after the fact. For Dependabot, set `commit-message` in `dependabot.yaml` for every `package-ecosystem` entry:
 ```yaml
 commit-message:
   prefix: "🤖 ci"
@@ -85,7 +85,7 @@ This renders as `🤖 ci(deps): bump <package> from X to Y` for production depen
 - **Agent Autonomy**: You MUST NOT arbitrarily execute commit or push commands before the user approves. All execution must wait for explicit user consent.
 - **Language**: The commit message and any detailed explanations of changes MUST be in English only. Do NOT use Korean.
 - **Privacy & Security**: NEVER include local paths, sensitive environment variables, or other local/sensitive information in the commit messages or detailed descriptions.
-- **No Session Metadata**: NEVER append session infomation or session links. (e.g. `Claude-Session:` lines to commit messages) This is a public repository and session URLs are confidential.
+- **No Session Metadata**: NEVER append session information or session links. (e.g. `Claude-Session:` lines to commit messages) This is a public repository and session URLs are confidential.
 
 ---
 
