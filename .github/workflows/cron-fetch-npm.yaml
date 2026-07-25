@@ -90,6 +90,13 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Remove any orphaned remote branch left over from a prior run
+          # whose PR creation failed (e.g. transient GitHub API errors),
+          # so this run can push a fresh branch from main without
+          # hitting a non-fast-forward rejection.
+          git push origin --delete version/${{ env.TARGET_VERSION }} 2>/dev/null || true
+
           git checkout -b version/${{ env.TARGET_VERSION }} main
           
           # Update package.json: dependencies and version
