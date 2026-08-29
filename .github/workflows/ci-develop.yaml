@@ -155,31 +155,85 @@ jobs:
       - name: Delete old dev image versions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
         run: |
+          set -euo pipefail
+
+          # Number of dev BUILDS to keep. Each build publishes one tagged image
+          # index plus one untagged child manifest per platform, so counting raw
+          # package versions here would keep roughly a third as many builds and
+          # would cut through a build group at the window boundary, leaving a
+          # tagged index whose child manifest was deleted.
           DEV_IMAGE_WINDOW_SIZE=20
+
           OWNER="${{ github.repository_owner }}"
           PACKAGE_NAME="$(echo '${{ github.repository }}' | cut -d'/' -f2)-dev"
+          # Registry paths are case-sensitive and always lowercase.
+          REPO_PATH="$(echo "${OWNER}/${PACKAGE_NAME}" | tr '[:upper:]' '[:lower:]')"
 
           # Check if the owner is a user or an organization
           API_PREFIX="users"
           if gh api /orgs/$OWNER >/dev/null 2>&1; then
             API_PREFIX="orgs"
           fi
+          VERSIONS_API="/$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME/versions"
 
-          echo "Looking for versions in /$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME"
-          # Fetch all version IDs sorted by creation date (newest first)
-          VERSIONS=$(gh api -H "Accept: application/vnd.github+json" /$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME/versions --paginate | jq -r 'sort_by(.created_at) | reverse | .[].id')
+          echo "Looking for versions in $VERSIONS_API"
+          # --paginate emits one JSON array per page, so stream elements and
+          # re-collect them into a single array.
+          VERSIONS=$(gh api -H "Accept: application/vnd.github+json" "$VERSIONS_API" --paginate --jq '.[]' | jq -s '.')
+          TOTAL=$(echo "$VERSIONS" | jq 'length')
 
-          TOTAL=$(echo "$VERSIONS" | wc -w)
-          echo "Total versions found: $TOTAL. Window size is $DEV_IMAGE_WINDOW_SIZE."
+          # Keep the most recent tagged image indexes. Untagged versions are
+          # child manifests and are protected below via their parent.
+          KEEP=$(echo "$VERSIONS" | jq --argjson n "$DEV_IMAGE_WINDOW_SIZE" '
+            [ .[] | select((.metadata.container.tags | length) > 0) ]
+            | sort_by(.created_at) | reverse | .[0:$n]')
+          KEEP_COUNT=$(echo "$KEEP" | jq 'length')
+          echo "Total package versions: $TOTAL. Keeping the newest $KEEP_COUNT of $DEV_IMAGE_WINDOW_SIZE builds."
 
-          if [ "$TOTAL" -gt "$DEV_IMAGE_WINDOW_SIZE" ]; then
-            # Exclude the most recent DEV_IMAGE_WINDOW_SIZE items, delete the rest
-            IDS_TO_DELETE=$(echo "$VERSIONS" | tail -n +$((DEV_IMAGE_WINDOW_SIZE + 1)))
-            for id in $IDS_TO_DELETE; do
-              echo "Deleting package version ID: $id"
-              gh api --method DELETE -H "Accept: application/vnd.github+json" /$API_PREFIX/$OWNER/packages/container/$PACKAGE_NAME/versions/$id || echo "Failed to delete version ID $id"
-            done
-          else
-            echo "Window size not exceeded. Skipping cleanup."
+          if [ "$KEEP_COUNT" -eq 0 ]; then
+            echo "::error::No tagged versions found. Refusing to delete anything."
+            exit 1
           fi
+
+          REG_TOKEN=$(curl -fsSL -u "${REGISTRY_USER}:${GH_TOKEN}" \
+            "https://ghcr.io/token?scope=repository:${REPO_PATH}:pull&service=ghcr.io" | jq -r '.token')
+
+          # Protected set: each kept index, plus every child manifest it references.
+          PROTECTED=$(mktemp)
+          echo "$KEEP" | jq -r '.[].name' > "$PROTECTED"
+
+          while read -r digest; do
+            RAW=$(curl -fsSL -H "Authorization: Bearer ${REG_TOKEN}" \
+              -H "Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.manifest.v1+json" \
+              "https://ghcr.io/v2/${REPO_PATH}/manifests/${digest}") || {
+                echo "::error::Could not inspect ${digest}. Refusing to delete anything."
+                exit 1
+              }
+            echo "$RAW" | jq -r '.manifests[]?.digest // empty' >> "$PROTECTED"
+          done < <(echo "$KEEP" | jq -r '.[].name')
+
+          sort -u "$PROTECTED" -o "$PROTECTED"
+          echo "Protected versions (indexes and their children): $(wc -l < "$PROTECTED")"
+
+          # Warn about kept tags whose child manifests are already gone. These
+          # pull fine for one platform and fail for the other.
+          while read -r digest; do
+            if ! echo "$VERSIONS" | jq -e --arg d "$digest" 'any(.[]; .name == $d)' >/dev/null; then
+              echo "::warning::Child manifest $digest is referenced by a kept tag but no longer exists in the registry"
+            fi
+          done < "$PROTECTED"
+
+          DELETED=0
+          while read -r id digest; do
+            if grep -qxF "$digest" "$PROTECTED"; then
+              continue
+            fi
+            echo "Deleting package version $id ($digest)"
+            gh api --method DELETE -H "Accept: application/vnd.github+json" "$VERSIONS_API/$id" \
+              && DELETED=$((DELETED + 1)) \
+              || echo "::warning::Failed to delete version $id"
+          done < <(echo "$VERSIONS" | jq -r '.[] | "\(.id) \(.name)"')
+
+          echo "Deleted $DELETED version(s); $(wc -l < "$PROTECTED") retained."
