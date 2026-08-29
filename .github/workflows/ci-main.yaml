@@ -181,7 +181,7 @@ jobs:
           done
           docker buildx imagetools create "${TAG_FLAGS[@]}" \
             --annotation index:org.opencontainers.image.source="https://github.com/${{ github.repository }}" \
-            --annotation index:org.opencontainers.image.description="Community-maintained Claude Code Docker Image (Node.js 24)" \
+            --annotation index:org.opencontainers.image.description="Community-maintained Claude Code Docker Image (Node.js 26)" \
             --annotation index:org.opencontainers.image.licenses="MIT" \
             --annotation index:org.opencontainers.image.title="${{ github.repository }}" \
             --annotation index:org.opencontainers.image.url="https://github.com/${{ github.repository }}" \

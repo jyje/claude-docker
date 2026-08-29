@@ -18,10 +18,10 @@
 
 ⭐ **If you found this project useful, please consider giving it a star on GitHub!**
 
-🤖 This repository provides [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Docker images powered by community. Built with Node.js 26. Supported architectures are `linux/amd64`, `linux/arm64`.
+🤖 This repository provides [Claude Code](https://code.claude.com/docs) Docker images powered by community. Built with Node.js 26. Supported architectures are `linux/amd64`, `linux/arm64`.
 
 > [!IMPORTANT]
-> This repository is not affiliated with Anthropic. This is a community-maintained project that provides a Docker image for Claude Code users. For official information, visit [docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code).
+> This repository is not affiliated with Anthropic. This is a community-maintained project that provides a Docker image for Claude Code users. For official information, visit [code.claude.com/docs](https://code.claude.com/docs).
 
 > [!NOTE]
 > **Based on Official Anthropic Dockerfile**  
@@ -37,10 +37,92 @@
 
 ## Environment Variables
 
+Claude Code reads many environment variables. The tables below cover the ones that matter most when running this image in Docker, Kubernetes, or CI.
+
+> [!NOTE]
+> For the complete list of supported variables, see the official reference: **[Claude Code environment variables](https://code.claude.com/docs/en/env-vars)**.
+
+### Authentication & Endpoint
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key. Get one at [console.anthropic.com](https://console.anthropic.com/) |
-| `ANTHROPIC_BASE_URL` | No | Custom API endpoint URL. Use for local models (e.g., Docker Model Runner) or custom endpoints |
+| `ANTHROPIC_API_KEY` | Yes\* | API key sent as the `X-Api-Key` header. Get one at [console.anthropic.com](https://console.anthropic.com/) |
+| `ANTHROPIC_AUTH_TOKEN` | No | Custom `Authorization` header value, automatically prefixed with `Bearer `. Common when authenticating through a gateway |
+| `ANTHROPIC_BASE_URL` | No | Route requests through a proxy or gateway. Also used for local models (e.g., Docker Model Runner) |
+| `ANTHROPIC_CUSTOM_HEADERS` | No | Extra request headers in `Name: Value` format, newline-separated for multiple headers |
+| `ANTHROPIC_BETAS` | No | Comma-separated `anthropic-beta` values, to opt into an API beta before Claude Code supports it natively |
+
+\* Required unless you authenticate another way, such as a subscription login, a gateway token, or one of the cloud providers below.
+
+> [!CAUTION]
+> `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are secrets. Pass them with `-e VAR` (reading from your shell) or `--env-file`, never by hardcoding the value into a `Dockerfile` or a committed compose file.
+
+### Model Selection
+
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_MODEL` | Model to use for the session |
+| `ANTHROPIC_DEFAULT_MODEL` | Model that new sessions start on by default (requires Claude Code v2.1.236 or later) |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | Model ID that the `opus` alias resolves to |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | Model ID that the `sonnet` alias resolves to |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Model ID that the `haiku` alias resolves to, also used for background functionality |
+
+### Cloud Providers
+
+| Variable | Description |
+|----------|-------------|
+| `CLAUDE_CODE_USE_BEDROCK` | Use [Amazon Bedrock](https://code.claude.com/docs/en/amazon-bedrock) |
+| `CLAUDE_CODE_USE_VERTEX` | Use [Google Cloud's Agent Platform](https://code.claude.com/docs/en/google-vertex-ai) |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | GCP project ID. Overridden by `GCLOUD_PROJECT`, `GOOGLE_CLOUD_PROJECT`, or the project in your credential file |
+| `ANTHROPIC_BEDROCK_BASE_URL` | Override the Amazon Bedrock endpoint, for custom endpoints or an LLM gateway |
+| `ANTHROPIC_VERTEX_BASE_URL` | Override the Google Cloud endpoint, for custom endpoints or an LLM gateway |
+
+### Network, Proxy & Gateway Compatibility
+
+| Variable | Description |
+|----------|-------------|
+| `HTTP_PROXY` | HTTP proxy server for network connections |
+| `HTTPS_PROXY` | HTTPS proxy server for network connections |
+| `NO_PROXY` | Domains and IPs to reach directly, bypassing the proxy |
+| `API_TIMEOUT_MS` | API request timeout in milliseconds (default: `600000`, 10 minutes). Raise it on slow networks or when routing through a proxy |
+| `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` | Set to `1` to strip `anthropic-beta` headers and beta tool-schema fields from requests. Use it when a gateway rejects them. Counterpart to `ANTHROPIC_BETAS`, and it also disables MCP tool search |
+
+> [!TIP]
+> If you run this image with the network sandbox (`--cap-add=NET_ADMIN --cap-add=NET_RAW`), remember that `init-firewall.sh` restricts outbound traffic. A proxy host set here also has to be reachable through that firewall.
+
+### Execution Limits & Token Budgets
+
+| Variable | Description |
+|----------|-------------|
+| `BASH_DEFAULT_TIMEOUT_MS` | Default timeout for long-running bash commands (default: `120000`, 2 minutes) |
+| `BASH_MAX_TIMEOUT_MS` | Maximum timeout the model can set for bash commands (default: `600000`, 10 minutes) |
+| `BASH_MAX_OUTPUT_LENGTH` | Maximum characters of bash output read back into a result (default: `30000`, maximum: `150000`) |
+| `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | Maximum output tokens for most requests. Defaults and caps vary by model |
+| `MAX_THINKING_TOKENS` | Fixed token budget for extended thinking |
+| `MCP_TIMEOUT` | MCP server startup timeout in milliseconds (default: `30000`, 30 seconds) |
+| `MAX_MCP_OUTPUT_TOKENS` | Maximum tokens allowed in MCP tool responses |
+
+These are the variables worth tuning for non-interactive runs (`claude -p`) in CI, where the defaults are often too tight for long builds or slow MCP servers.
+
+### Container Operations, Updates & Privacy
+
+| Variable | Description |
+|----------|-------------|
+| `CLAUDE_CONFIG_DIR` | Override the config directory (default: `~/.claude`). Settings, session history, and plugins live here, so point your volume mount at this path |
+| `DISABLE_AUTOUPDATER` | Set to `1` to disable automatic background updates. Manual `claude update` still works |
+| `DISABLE_UPDATES` | Set to `1` to block all updates, including manual `claude update`. Stricter than `DISABLE_AUTOUPDATER`, and usually what you want for a pinned image |
+| `DISABLE_TELEMETRY` | Opt out of telemetry. See the warning below |
+| `DO_NOT_TRACK` | Set to `1` to opt out of telemetry, same effect as `DISABLE_TELEMETRY`. Read as a normal boolean, so `0` leaves telemetry on |
+| `DISABLE_ERROR_REPORTING` | Opt out of error reporting. See the warning below |
+| `CLAUDECODE` | Set to `1` by Claude Code inside the subprocesses it spawns. Use it to detect that a script is running under Claude Code |
+
+> [!WARNING]
+> `DISABLE_TELEMETRY` and `DISABLE_ERROR_REPORTING` opt out on **any non-empty value, including `0` and `false`**. Passing `-e DISABLE_TELEMETRY=0` keeps telemetry off rather than turning it back on. To re-enable, leave the variable unset entirely. `DO_NOT_TRACK` is the exception: it is read as a normal boolean, so `DO_NOT_TRACK=0` really does leave telemetry on.
+>
+> Both telemetry opt-outs also disable feature-flag fetching, which makes Remote Control and other feature-flag dependent features unavailable.
+
+> [!TIP]
+> Because this image ships pinned versions, `DISABLE_UPDATES=1` keeps a tagged image reproducible by preventing Claude Code from updating itself at runtime.
 
 > [!TIP]
 > For detailed usage examples including Docker, Kubernetes, and API key authentication, see the **[Getting Started Guide](docs/getting-started.md)**.

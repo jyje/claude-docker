@@ -15,10 +15,9 @@ docker run --rm -it \
 
 ## 환경 변수
 
-| 변수 | 필수 | 설명 |
-|------|------|------|
-| `ANTHROPIC_API_KEY` | 예 | [console.anthropic.com](https://console.anthropic.com/)에서 발급 |
-| `ANTHROPIC_BASE_URL` | 아니오 | 커스텀 엔드포인트 (로컬 모델, 프록시 등) |
+시작하는 데 필요한 변수는 `ANTHROPIC_API_KEY` 하나뿐입니다. [console.anthropic.com](https://console.anthropic.com/)에서 발급받으세요.
+
+모델 선택, 프록시, 클라우드 프로바이더, 실행 제한, 텔레메트리 거부 등 나머지 변수는 **[README의 환경 변수 섹션](../readme-ko.md#환경-변수)**을 참조하세요.
 
 `.env` 파일 사용:
 ```bash

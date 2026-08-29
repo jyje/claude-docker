@@ -15,10 +15,9 @@ docker run --rm -it \
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Get one at [console.anthropic.com](https://console.anthropic.com/) |
-| `ANTHROPIC_BASE_URL` | No | Custom endpoint (e.g., local models, proxies) |
+`ANTHROPIC_API_KEY` is the only variable you need to get started. Get one at [console.anthropic.com](https://console.anthropic.com/).
+
+For everything else (model selection, proxies, cloud providers, execution limits, telemetry opt-out), see the **[Environment Variables section in the README](../readme.md#environment-variables)**.
 
 Using `.env` file:
 
