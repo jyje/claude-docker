@@ -1370,4 +1370,4 @@ timeout 300 claude "your prompt" || echo "Timeout or error occurred"
 - [Getting Started Guide](getting-started.md)
 - [Argo Workflows Documentation](https://argoproj.github.io/workflows/)
 - [Kubernetes Jobs Documentation](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
-- [Claude Code Official Documentation](https://docs.anthropic.com/en/docs/claude-code)
+- [Claude Code Official Documentation](https://code.claude.com/docs)
