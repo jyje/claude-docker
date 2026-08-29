@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-26.04-arm
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      BASELINE_VERSION: '2.1.34'
+      # Configurable via the repository variable BASELINE_VERSION (Settings > Secrets and variables > Actions > Variables).
+      # Falls back to 2.1.34 if the variable is unset.
+      BASELINE_VERSION: ${{ vars.BASELINE_VERSION || '2.1.34' }}
       UPDATE_NEEDED: 'false'
       TARGET_VERSION: ''
       PR_EXISTS: 'false'
