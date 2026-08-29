@@ -139,6 +139,9 @@ jobs:
     needs: [ init, build ]
     runs-on: ubuntu-26.04-arm
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -176,23 +179,18 @@ jobs:
             TAG_FLAGS+=(-t "$tag")
           done
           docker buildx imagetools create "${TAG_FLAGS[@]}" \
-            --annotation "index:org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
-            --annotation "index:org.opencontainers.image.description=Community-maintained Claude Code Docker Image (Node.js 24)" \
-            --annotation "index:org.opencontainers.image.licenses=MIT" \
-            --annotation "index:org.opencontainers.image.title=${{ github.repository }}" \
-            --annotation "index:org.opencontainers.image.url=https://github.com/${{ github.repository }}" \
-            --annotation "index:org.opencontainers.image.version=${{ needs.init.outputs.image_version }}" \
+            --annotation index:org.opencontainers.image.source="https://github.com/${{ github.repository }}" \
+            --annotation index:org.opencontainers.image.description="Community-maintained Claude Code Docker Image (Node.js 24)" \
+            --annotation index:org.opencontainers.image.licenses="MIT" \
+            --annotation index:org.opencontainers.image.title="${{ github.repository }}" \
+            --annotation index:org.opencontainers.image.url="https://github.com/${{ github.repository }}" \
+            --annotation index:org.opencontainers.image.version="${{ needs.init.outputs.image_version }}" \
             $(for digest in *; do echo "${DOCKER_IMAGE}@sha256:${digest}"; done)
 
       - name: Verify multi-architecture manifest
-        run: |
-          DOCKER_IMAGE="ghcr.io/${{ github.repository }}"
-          RAW=$(docker buildx imagetools inspect --raw "${DOCKER_IMAGE}:${{ needs.init.outputs.image_version }}")
-          for p in linux/amd64 linux/arm64; do
-            echo "$RAW" | jq -e --arg p "$p" '.manifests[] | select(.platform.os + "/" + .platform.architecture == $p)' >/dev/null \
-              || { echo "::error::Missing platform manifest: $p"; exit 1; }
-            echo "Found platform manifest: $p"
-          done
+        uses: ./.github/actions/verify-multiarch-manifest
+        with:
+          image: ghcr.io/${{ github.repository }}:${{ needs.init.outputs.image_version }}
 
   release:
     name: 🚀 Release
