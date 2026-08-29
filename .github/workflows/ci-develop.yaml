@@ -90,13 +90,9 @@ jobs:
           docker run -i ghcr.io/${{ github.repository }}-dev:${{ env.SHORT_SHA }} claude --version
 
       - name: Verify multi-architecture manifest
-        run: |
-          RAW=$(docker buildx imagetools inspect --raw ghcr.io/${{ github.repository }}-dev:${{ env.SHORT_SHA }})
-          for p in linux/amd64 linux/arm64; do
-            echo "$RAW" | jq -e --arg p "$p" '.manifests[] | select(.platform.os + "/" + .platform.architecture == $p)' >/dev/null \
-              || { echo "::error::Missing platform manifest: $p"; exit 1; }
-            echo "Found platform manifest: $p"
-          done
+        uses: ./.github/actions/verify-multiarch-manifest
+        with:
+          image: ghcr.io/${{ github.repository }}-dev:${{ env.SHORT_SHA }}
 
       - name: Clean up old dev images
         env:
