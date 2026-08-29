@@ -1360,4 +1360,4 @@ timeout 300 claude "your prompt" || echo "타임아웃 또는 오류 발생"
 - [시작 가이드](getting-started-ko.md)
 - [Argo Workflows 문서](https://argoproj.github.io/workflows/)
 - [Kubernetes Jobs 문서](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
-- [Claude Code 공식 문서](https://docs.anthropic.com/en/docs/claude-code)
+- [Claude Code 공식 문서](https://code.claude.com/docs)

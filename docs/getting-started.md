@@ -20,6 +20,8 @@ docker run --rm -it \
 | `ANTHROPIC_API_KEY` | Yes | Get one at [console.anthropic.com](https://console.anthropic.com/) |
 | `ANTHROPIC_BASE_URL` | No | Custom endpoint (e.g., local models, proxies) |
 
+That's enough to get running. For the full set of variables this image recognizes (model selection, cloud providers, proxy/timeout settings, telemetry opt-outs, and more), see [Environment Variables](../readme.md#environment-variables) in the main README.
+
 Using `.env` file:
 
 ```bash

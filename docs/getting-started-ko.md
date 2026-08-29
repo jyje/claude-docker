@@ -20,6 +20,8 @@ docker run --rm -it \
 | `ANTHROPIC_API_KEY` | 예 | [console.anthropic.com](https://console.anthropic.com/)에서 발급 |
 | `ANTHROPIC_BASE_URL` | 아니오 | 커스텀 엔드포인트 (로컬 모델, 프록시 등) |
 
+여기까지만 있으면 바로 실행할 수 있습니다. 이 이미지가 인식하는 전체 변수 목록(모델 선택, 클라우드 제공자, 프록시/타임아웃 설정, 텔레메트리 옵트아웃 등)은 메인 README의 [환경 변수](../readme-ko.md#환경-변수) 섹션을 참조하세요.
+
 `.env` 파일 사용:
 ```bash
 # .env

@@ -4,9 +4,9 @@ FROM node:26-slim
 LABEL org.opencontainers.image.title="jyje/claude-docker"
 LABEL org.opencontainers.image.description="Community-maintained Claude Code Docker Image"
 LABEL org.opencontainers.image.source="https://github.com/jyje/claude-docker"
-LABEL org.opencontainers.image.documentation="https://docs.anthropic.com/en/docs/claude-code"
+LABEL org.opencontainers.image.documentation="https://code.claude.com/docs"
 LABEL org.opencontainers.image.licenses="MIT"
-LABEL org.opencontainers.image.base.name="docker.io/library/node:24-slim"
+LABEL org.opencontainers.image.base.name="docker.io/library/node:26-slim"
 
 ARG TZ
 ENV TZ="$TZ"

@@ -136,7 +136,7 @@ jobs:
             -t "${DOCKER_IMAGE}:latest" \
             -t "${DOCKER_IMAGE}:${{ needs.init.outputs.short_sha }}" \
             --annotation index:org.opencontainers.image.source="https://github.com/${{ github.repository }}" \
-            --annotation index:org.opencontainers.image.description="Community-maintained Claude Code Docker Image (Node.js 24) - Development Build" \
+            --annotation index:org.opencontainers.image.description="Community-maintained Claude Code Docker Image (Node.js 26) - Development Build" \
             --annotation index:org.opencontainers.image.licenses="MIT" \
             --annotation index:org.opencontainers.image.title="${{ github.repository }}-dev" \
             --annotation index:org.opencontainers.image.url="https://github.com/${{ github.repository }}" \
