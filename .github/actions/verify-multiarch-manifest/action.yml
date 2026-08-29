@@ -1,0 +1,25 @@
+name: Verify multi-architecture manifest
+description: Fail the workflow if a pushed image tag is missing any expected platform manifest.
+
+inputs:
+  image:
+    description: Fully qualified image reference to inspect (e.g. ghcr.io/owner/repo:tag).
+    required: true
+  platforms:
+    description: Comma-separated list of expected platforms.
+    required: false
+    default: linux/amd64,linux/arm64
+
+runs:
+  using: composite
+  steps:
+    - name: Verify platform manifests
+      shell: bash
+      run: |
+        RAW=$(docker buildx imagetools inspect --raw "${{ inputs.image }}")
+        IFS=',' read -ra PLATFORMS <<< "${{ inputs.platforms }}"
+        for p in "${PLATFORMS[@]}"; do
+          echo "$RAW" | jq -e --arg p "$p" '.manifests[] | select(.platform.os + "/" + .platform.architecture == $p)' >/dev/null \
+            || { echo "::error::Missing platform manifest: $p"; exit 1; }
+          echo "Found platform manifest: $p"
+        done
