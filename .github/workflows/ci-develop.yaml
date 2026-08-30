@@ -11,6 +11,15 @@ on:
       - init-firewall.sh
       - hello.sh
 
+env:
+  # Characters of the commit SHA used for the immutable dev tag.
+  DEV_IMAGE_HASH_LENGTH: 20
+  # Number of dev BUILDS to keep in GHCR. Each build publishes one tagged
+  # image index plus one untagged child manifest per platform, and the
+  # cleanup job resolves those children so a build is always retained or
+  # removed as a whole.
+  DEV_IMAGE_WINDOW_SIZE: 20
+
 jobs:
   init:
     name: 🧐 Initialize
@@ -35,7 +44,6 @@ jobs:
       - name: Extract short SHA
         id: short_sha
         run: |
-          DEV_IMAGE_HASH_LENGTH=20
           echo "short_sha=$(echo ${{ github.sha }} | cut -c1-${DEV_IMAGE_HASH_LENGTH})" >> $GITHUB_OUTPUT
 
   build:
@@ -159,13 +167,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Number of dev BUILDS to keep. Each build publishes one tagged image
-          # index plus one untagged child manifest per platform, so counting raw
-          # package versions here would keep roughly a third as many builds and
-          # would cut through a build group at the window boundary, leaving a
-          # tagged index whose child manifest was deleted.
-          DEV_IMAGE_WINDOW_SIZE=20
-
+          # DEV_IMAGE_WINDOW_SIZE counts dev BUILDS, not package versions. See
+          # the env block at the top of this workflow.
           OWNER="${{ github.repository_owner }}"
           PACKAGE_NAME="$(echo '${{ github.repository }}' | cut -d'/' -f2)-dev"
           # Registry paths are case-sensitive and always lowercase.
