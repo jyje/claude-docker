@@ -61,36 +61,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Extract Claude Code version
-        id: version
-        run: |
-          VERSION=$(jq -r '.dependencies["@anthropic-ai/claude-code"]' package.json)
-          echo "claude_version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Build native platform image (no push)
-        uses: docker/build-push-action@v7
+      - name: Build and smoke test native platform image (no push)
+        uses: ./.github/actions/build-native
         with:
-          context: .
-          file: ./Dockerfile
-          platforms: ${{ matrix.platform }}
-          load: true
-          push: false
-          provenance: false
-          tags: claude-docker:version-check
-          build-args: |
-            CLAUDE_CODE_VERSION=${{ steps.version.outputs.claude_version }}
-
-      - name: Smoke test native image
-        env:
-          EXPECTED: ${{ steps.version.outputs.claude_version }}
-        run: |
-          OUT=$(docker run --rm claude-docker:version-check claude --version)
-          echo "$OUT"
-          grep -F "$EXPECTED" <<< "$OUT" >/dev/null \
-            || { echo "::error::claude --version did not report $EXPECTED"; exit 1; }
+          platform: ${{ matrix.platform }}
 
   # The single status to require on main. Always runs, so it always reports.
   version-check:
