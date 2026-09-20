@@ -2,13 +2,27 @@ name: cron-fetch-npm
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    # Safety net only. ci-main dispatches this workflow right after each release,
+    # so a backlog is worked through without waiting for a tick. The minute is
+    # deliberately not 0: scheduled runs on the hour queue behind everyone else's
+    # and were observed starting 2.5 to 4.7 hours late.
+    - cron: '23 */6 * * *'
   workflow_dispatch:
+
+# A chained run and a scheduled tick must not race to create the same branch or PR.
+concurrency:
+  group: cron-fetch-npm
+  cancel-in-progress: false
 
 jobs:
   check-claude-version:
     name: 🔍 Check NPM Version
     runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: write
+      pull-requests: write
+      # Needed to dispatch pr-version-check (see the last step).
+      actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Configurable via the repository variable BASELINE_VERSION (Settings > Secrets and variables > Actions > Variables).
@@ -120,10 +134,19 @@ jobs:
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
         run: |
           MISSING_CHECKLIST=$(sort -V missing_versions.txt | while IFS= read -r v; do echo "- [ ] v$v"; done)
-          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
+          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\nUpstream changelog: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md\n\nThe \`version-check\` status on this PR builds both platforms natively and must be green before merging.\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
           gh pr create \
             --title "⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}" \
             --body "$PR_BODY" \
             --base main \
             --head version/${{ env.TARGET_VERSION }} \
             --assignee "${{ github.repository_owner }}"
+
+      # PRs created with GITHUB_TOKEN do not fire pull_request events, so the
+      # check would never start on its own. workflow_dispatch is exempt from that
+      # rule, and the resulting check run attaches to the branch head commit,
+      # which is the commit this PR points at.
+      - name: Run version check on the new branch
+        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
+        run: |
+          gh workflow run pr-version-check.yaml --ref version/${{ env.TARGET_VERSION }}

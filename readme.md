@@ -252,7 +252,7 @@ This repository builds and manages Claude Code Docker images through an automate
 
 ### Common Capabilities
 - **Multi-architecture**: Builds support both `linux/amd64` and `linux/arm64`.
-- **Auto-update**: A cron job checks for new Claude Code versions every 6 hours and automatically creates Pull Requests.
+- **Auto-update**: A cron job checks for new Claude Code versions every 6 hours and automatically creates a Pull Request. It also runs right after each release, so a backlog of versions is worked through one PR at a time. Each PR builds both platforms natively before it can be merged, and merging is always manual.
 - **Opt-out**: You can skip the CI pipeline for any commit by including the `--no-ci` flag in the commit message.
 
 ## Contributing

@@ -266,6 +266,23 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           bodyFile: "release_body.md"
 
+  # Chain the next version. Runs only when release succeeded, so a failed build
+  # stops the chain instead of queueing more PRs. If no version is missing the
+  # dispatched run is a short no-op. workflow_dispatch is exempt from the rule
+  # that GITHUB_TOKEN events do not trigger workflows.
+  next:
+    name: ⏭️ Check for next version
+    needs: [ init, release ]
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch cron-fetch-npm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run cron-fetch-npm.yaml --repo "$REPO" --ref main
+
   cleanup:
     name: 🧹 Cleanup
     needs: [ release ]

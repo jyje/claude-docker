@@ -1,0 +1,111 @@
+name: pr-version-check
+
+# Validates automated version bump PRs before they can be merged.
+#
+# Runs on every PR to main so that the required status always reports, but only
+# does real work for version/* branches. The cron workflow also dispatches it
+# by hand, because PRs created with GITHUB_TOKEN do not fire pull_request events.
+#
+# Only the final `version-check` job should be marked as a required status
+# check. Matrix jobs that get skipped report an unexpanded name and would leave
+# a required check pending forever.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: 🔎 Detect version PR
+    runs-on: ubuntu-26.04-arm
+    outputs:
+      is_version_pr: ${{ steps.detect.outputs.is_version_pr }}
+    steps:
+      - name: Check branch name
+        id: detect
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          if [[ "$BRANCH" == version/* ]]; then
+            echo "is_version_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_version_pr=false" >> "$GITHUB_OUTPUT"
+            echo "Branch '$BRANCH' is not a version branch, nothing to build."
+          fi
+
+  build:
+    name: 🏗️ Build (${{ matrix.platform }})
+    needs: detect
+    if: ${{ needs.detect.outputs.is_version_pr == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-26.04
+          - platform: linux/arm64
+            runner: ubuntu-26.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Extract Claude Code version
+        id: version
+        run: |
+          VERSION=$(jq -r '.dependencies["@anthropic-ai/claude-code"]' package.json)
+          echo "claude_version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build native platform image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          push: false
+          provenance: false
+          tags: claude-docker:version-check
+          build-args: |
+            CLAUDE_CODE_VERSION=${{ steps.version.outputs.claude_version }}
+
+      - name: Smoke test native image
+        env:
+          EXPECTED: ${{ steps.version.outputs.claude_version }}
+        run: |
+          OUT=$(docker run --rm claude-docker:version-check claude --version)
+          echo "$OUT"
+          grep -F "$EXPECTED" <<< "$OUT" >/dev/null \
+            || { echo "::error::claude --version did not report $EXPECTED"; exit 1; }
+
+  # The single status to require on main. Always runs, so it always reports.
+  version-check:
+    name: version-check
+    needs: [ detect, build ]
+    if: ${{ always() }}
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - name: Evaluate
+        env:
+          DETECT: ${{ needs.detect.result }}
+          BUILD: ${{ needs.build.result }}
+          IS_VERSION_PR: ${{ needs.detect.outputs.is_version_pr }}
+        run: |
+          if [ "$DETECT" != "success" ]; then
+            echo "::error::Detection failed ($DETECT)"; exit 1
+          fi
+          if [ "$IS_VERSION_PR" != "true" ]; then
+            echo "Not a version PR, passing."; exit 0
+          fi
+          if [ "$BUILD" != "success" ]; then
+            echo "::error::Native build or smoke test did not succeed ($BUILD)"; exit 1
+          fi
+          echo "Both platforms built and reported the expected version."
