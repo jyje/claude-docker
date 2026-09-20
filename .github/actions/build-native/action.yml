@@ -1,0 +1,114 @@
+name: Build native platform image
+description: >
+  Build the image for one platform on a runner of that same architecture, smoke
+  test it, and optionally push it by digest and hand the digest to a later job.
+  Run actions/checkout before this action.
+
+inputs:
+  platform:
+    description: Platform to build, for example linux/amd64.
+    required: true
+  push:
+    description: >
+      "true" pushes the image by digest and uploads the digest as an artifact.
+      Anything else builds locally and only runs the smoke test.
+    required: false
+    default: 'false'
+  image:
+    description: Image name to push to, without a tag (for example ghcr.io/owner/repo). Required when push is true.
+    required: false
+    default: ''
+  artifact-name:
+    description: Name of the artifact that carries the digest. Required when push is true.
+    required: false
+    default: ''
+  registry-username:
+    description: Registry user. Required when push is true.
+    required: false
+    default: ''
+  registry-password:
+    description: Registry password or token. Required when push is true.
+    required: false
+    default: ''
+
+outputs:
+  digest:
+    description: Digest of the pushed image. Empty when push is not true.
+    value: ${{ steps.build.outputs.digest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Login to GitHub Container Registry
+      if: ${{ inputs.push == 'true' }}
+      uses: docker/login-action@v4.6.0
+      with:
+        registry: ghcr.io
+        username: ${{ inputs.registry-username }}
+        password: ${{ inputs.registry-password }}
+
+    - name: Extract Claude Code version
+      id: version
+      shell: bash
+      run: |
+        VERSION=$(jq -r '.dependencies["@anthropic-ai/claude-code"]' package.json)
+        echo "claude_version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+    # Layer cache: read everywhere, write only from builds that publish. Caches
+    # written on a feature branch are not visible to other refs, so writing from
+    # the pull request check would only fill the cache quota.
+    - name: Build native platform image
+      id: build
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: ${{ inputs.platform }}
+        provenance: false
+        build-args: |
+          CLAUDE_CODE_VERSION=${{ steps.version.outputs.claude_version }}
+        load: ${{ inputs.push != 'true' }}
+        tags: ${{ inputs.push != 'true' && 'claude-docker:native-check' || '' }}
+        outputs: ${{ inputs.push == 'true' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', inputs.image) || '' }}
+        cache-from: type=gha,scope=native-${{ inputs.platform }}
+        cache-to: ${{ inputs.push == 'true' && format('type=gha,mode=max,scope=native-{0},ignore-error=true', inputs.platform) || '' }}
+
+    - name: Smoke test native image
+      shell: bash
+      env:
+        PUSH: ${{ inputs.push }}
+        IMAGE: ${{ inputs.image }}
+        DIGEST: ${{ steps.build.outputs.digest }}
+        EXPECTED: ${{ steps.version.outputs.claude_version }}
+      run: |
+        if [ "$PUSH" = "true" ]; then
+          REF="${IMAGE}@${DIGEST}"
+        else
+          REF="claude-docker:native-check"
+        fi
+        OUT=$(docker run --rm "$REF" claude --version)
+        echo "$OUT"
+        grep -F "$EXPECTED" <<< "$OUT" >/dev/null \
+          || { echo "::error::claude --version did not report $EXPECTED"; exit 1; }
+
+    - name: Export digest
+      if: ${{ inputs.push == 'true' }}
+      shell: bash
+      env:
+        DIGEST: ${{ steps.build.outputs.digest }}
+      run: |
+        mkdir -p /tmp/digests
+        touch "/tmp/digests/${DIGEST#sha256:}"
+
+    - name: Upload digest
+      if: ${{ inputs.push == 'true' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: /tmp/digests/*
+        if-no-files-found: error
+        retention-days: 1
+        overwrite: true
