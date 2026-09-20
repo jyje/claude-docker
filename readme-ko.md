@@ -12,7 +12,7 @@
   [![cron](https://github.com/jyje/claude-docker/actions/workflows/cron-fetch-npm.yaml/badge.svg)](https://github.com/jyje/claude-docker/actions/workflows/cron-fetch-npm.yaml)
   [![GitHub Repo stars](https://img.shields.io/github/stars/jyje/claude-docker)](https://github.com/jyje/claude-docker)
 
-  [English](readme.md) / [한국어](readme-ko.md)
+  [English](readme.md) / [한국어](readme-ko.md) / [简体中文](readme-zh-CN.md) / [日本語](readme-ja.md)
 
 </div>
 

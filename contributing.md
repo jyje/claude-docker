@@ -106,9 +106,38 @@ fix: Fix login validation
 ## Documentation
 
 - Update documentation for new features or changes
-- (Optional) Keep readme.md and readme-ko.md in sync
+- (Optional) Keep translations in sync, see [Translations](#translations)
 - Use clear and concise language
 - Include code examples where appropriate
+
+## Translations
+
+English is the source of truth. Write or change the English document first, and let translations follow.
+
+| Language | Locale | README | Getting started | Advanced guide |
+|----------|--------|--------|-----------------|----------------|
+| English | `en` | `readme.md` | `docs/getting-started.md` | `docs/advanced-guide.md` |
+| Korean | `ko` | `readme-ko.md` | `docs/getting-started-ko.md` | `docs/advanced-guide-ko.md` |
+| Simplified Chinese | `zh-CN` | `readme-zh-CN.md` | `docs/getting-started-zh-CN.md` | not translated yet, links to English |
+| Japanese | `ja` | `readme-ja.md` | `docs/getting-started-ja.md` | not translated yet, links to English |
+
+### Adding or updating a translation
+
+- Name the file with the locale as a suffix before `.md`, using the codes in the table.
+- Translate prose, headings and table descriptions. Leave code blocks, commands, file names, environment variable names and product names as they are.
+- Put a marker on the first line of every translated file, naming the English source and the commit it was translated from:
+  `<!-- Translated from readme.md at 4892c7a -->`
+  Bump the commit when you bring a translation up to date. `git diff <commit> -- readme.md` then shows what changed in English since.
+- Links from a translated guide into a README section must use the heading of the translated README, because GitHub builds anchors from the heading text.
+- When you add a language, add its switcher entry to the header of every README.
+
+### Keeping translations in sync
+
+Changing an English document does not require updating every translation in the same PR. A translation that lags is fine, and English wins wherever they disagree. The commit in the marker tells reviewers how far behind a translation is.
+
+### AI-assisted translations
+
+Some translations are produced with AI assistance. If yours is, say so in a short note at the top of the file, and mention it in the PR. Review by a native speaker is always welcome.
 
 ## Questions or Issues?
 
