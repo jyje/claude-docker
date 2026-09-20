@@ -21,8 +21,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      # Needed to dispatch pr-version-check (see the last step).
+      # Needed to dispatch pr-version-check and to see whether it already ran.
       actions: write
+      checks: read
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Configurable via the repository variable BASELINE_VERSION (Settings > Secrets and variables > Actions > Variables).
@@ -33,6 +34,7 @@ jobs:
       PR_EXISTS: 'false'
       HAS_OPEN_VERSION_PR: 'false'
       TAG_EXISTS: 'false'
+      SHOULD_CREATE_PR: 'false'
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -101,8 +103,14 @@ jobs:
               echo "TAG_EXISTS=false" >> $GITHUB_ENV
             fi
 
-      - name: Create new branch and update version
+      # One place that decides whether a new PR is created, so the steps below
+      # cannot drift apart.
+      - name: Decide whether to create a PR
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
+        run: echo "SHOULD_CREATE_PR=true" >> "$GITHUB_ENV"
+
+      - name: Create new branch and update version
+        if: env.SHOULD_CREATE_PR == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -131,10 +139,10 @@ jobs:
           git push origin version/${{ env.TARGET_VERSION }}
 
       - name: Create PR
-        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
+        if: env.SHOULD_CREATE_PR == 'true'
         run: |
           MISSING_CHECKLIST=$(sort -V missing_versions.txt | while IFS= read -r v; do echo "- [ ] v$v"; done)
-          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\nUpstream changelog: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md\n\nThe \`version-check\` status on this PR builds both platforms natively and must be green before merging.\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
+          PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\nUpstream changelog: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md\n\nThe \`version-check\` status on this PR builds both platforms natively and should be green before merging.\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
           gh pr create \
             --title "⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}" \
             --body "$PR_BODY" \
@@ -145,8 +153,30 @@ jobs:
       # PRs created with GITHUB_TOKEN do not fire pull_request events, so the
       # check would never start on its own. workflow_dispatch is exempt from that
       # rule, and the resulting check run attaches to the branch head commit,
-      # which is the commit this PR points at.
-      - name: Run version check on the new branch
-        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false' && env.TAG_EXISTS == 'false'
+      # which is the commit the PR points at.
+      #
+      # This step is idempotent and also runs when the PR already exists, so a
+      # dispatch that failed on an earlier run is healed by the next one instead
+      # of leaving the PR without a version-check status.
+      - name: Ensure version check has run on the branch
+        if: env.UPDATE_NEEDED == 'true' && (env.SHOULD_CREATE_PR == 'true' || env.PR_EXISTS == 'true')
+        env:
+          REPO: ${{ github.repository }}
+          BRANCH: version/${{ env.TARGET_VERSION }}
         run: |
-          gh workflow run pr-version-check.yaml --ref version/${{ env.TARGET_VERSION }}
+          SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha')
+          COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs?check_name=version-check" --jq '.total_count')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "version-check already reported on $SHA, nothing to do."
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            if gh workflow run pr-version-check.yaml --repo "$REPO" --ref "$BRANCH"; then
+              echo "Dispatched pr-version-check on $BRANCH."
+              exit 0
+            fi
+            echo "Dispatch attempt $attempt failed, retrying in 10s."
+            sleep 10
+          done
+          echo "::error::Could not dispatch pr-version-check on $BRANCH"
+          exit 1

@@ -30,8 +30,14 @@ jobs:
         id: detect
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
+          # A branch name alone is spoofable. A fork PR named version/* must not
+          # get to build its own Dockerfile on our runners.
+          IS_FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
-          if [[ "$BRANCH" == version/* ]]; then
+          if [[ "$IS_FORK" == "true" ]]; then
+            echo "is_version_pr=false" >> "$GITHUB_OUTPUT"
+            echo "PR comes from a fork, not treating it as a version PR."
+          elif [[ "$BRANCH" == version/* ]]; then
             echo "is_version_pr=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_version_pr=false" >> "$GITHUB_OUTPUT"

@@ -272,7 +272,7 @@ jobs:
   # that GITHUB_TOKEN events do not trigger workflows.
   next:
     name: ⏭️ Check for next version
-    needs: [ init, release ]
+    needs: [ release ]
     runs-on: ubuntu-26.04-arm
     permissions:
       actions: write
