@@ -127,7 +127,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ matrix.arch }}
           path: /tmp/digests/*
@@ -144,7 +144,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: /tmp/digests
           pattern: digests-*
@@ -265,6 +265,23 @@ jobs:
           name: "Claude Docker ${{ needs.init.outputs.image_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           bodyFile: "release_body.md"
+
+  # Chain the next version. Runs only when release succeeded, so a failed build
+  # stops the chain instead of queueing more PRs. If no version is missing the
+  # dispatched run is a short no-op. workflow_dispatch is exempt from the rule
+  # that GITHUB_TOKEN events do not trigger workflows.
+  next:
+    name: ⏭️ Check for next version
+    needs: [ release ]
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch cron-fetch-npm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run cron-fetch-npm.yaml --repo "$REPO" --ref main
 
   cleanup:
     name: 🧹 Cleanup
