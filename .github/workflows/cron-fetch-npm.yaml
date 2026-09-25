@@ -45,7 +45,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.APP_ID }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
@@ -106,20 +106,29 @@ jobs:
           fi
 
       - name: Check for existing tag
-        uses: Wandalen/wretry.action@v3
         id: check_tag
         if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'false' && env.HAS_OPEN_VERSION_PR == 'false'
-        with:
-          attempt_limit: 3
-          attempt_delay: 10000
-          command: |
-            git fetch --tags
-            git tag --list "v${{ env.TARGET_VERSION }}" > tag_list.txt
-            if [ -s tag_list.txt ]; then
-              echo "TAG_EXISTS=true" >> $GITHUB_ENV
-            else
-              echo "TAG_EXISTS=false" >> $GITHUB_ENV
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if git fetch --tags; then
+              git tag --list "v${{ env.TARGET_VERSION }}" > tag_list.txt
+              if [ -s tag_list.txt ]; then
+                echo "TAG_EXISTS=true" >> "$GITHUB_ENV"
+              else
+                echo "TAG_EXISTS=false" >> "$GITHUB_ENV"
+              fi
+              exit 0
             fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "git fetch --tags failed on attempt ${attempt}/3; retrying in 10 seconds."
+              sleep 10
+            fi
+          done
+
+          echo "::error::git fetch --tags failed after 3 attempts."
+          exit 1
 
       # One place that decides whether a new PR is created, so the steps below
       # cannot drift apart.
