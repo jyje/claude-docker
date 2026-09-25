@@ -19,9 +19,10 @@ jobs:
     name: 🔍 Check NPM Version
     runs-on: ubuntu-26.04-arm
     permissions:
-      contents: write
-      pull-requests: write
-      # Needed to dispatch pr-version-check and to see whether it already ran.
+      # The App token handles pushes and PR creation; GITHUB_TOKEN only reads
+      # repository/PR state and dispatches or inspects the version check.
+      contents: read
+      pull-requests: read
       actions: write
       checks: read
     env:
@@ -48,11 +49,6 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
-          permission-actions: write
-          permission-checks: read
-
-      - name: Export GH_TOKEN for gh CLI steps
-        run: echo "GH_TOKEN=${{ steps.app-token.outputs.token }}" >> "$GITHUB_ENV"
 
       - name: Checkout code
         uses: actions/checkout@v7
@@ -93,6 +89,8 @@ jobs:
       - name: Check for existing PR and open version PRs
         if: env.UPDATE_NEEDED == 'true'
         id: check_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_TITLE="⬆️ dep(claude): update claude version to v${{ env.TARGET_VERSION }}"
           gh pr list --state open --base main --json title > pr_list.json
@@ -160,6 +158,8 @@ jobs:
 
       - name: Create PR
         if: env.SHOULD_CREATE_PR == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           MISSING_CHECKLIST=$(sort -V missing_versions.txt | while IFS= read -r v; do echo "- [ ] v$v"; done)
           PR_BODY=$(printf "Automatically created PR to update Claude Code version to v%s\n\nUpstream changelog: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md\n\nThe \`version-check\` status on this PR builds both platforms natively and should be green before merging.\n\n### Upstream versions not yet built\n\n%s" "${{ env.TARGET_VERSION }}" "$MISSING_CHECKLIST")
@@ -182,6 +182,7 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           BRANCH: version/${{ env.TARGET_VERSION }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha')
           COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs?check_name=version-check" --jq '.total_count')
