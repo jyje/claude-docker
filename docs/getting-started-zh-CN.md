@@ -76,7 +76,7 @@ mkdir -p ~/.claude
 echo '{"apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""}' > ~/.claude/settings.json
 ```
 
-Claude 会通过这个 helper 读取密钥，从而绕过 OAuth。自定义镜像的 Dockerfile 示例请参阅[进阶指南](advanced-guide.md)（英文）。
+Claude 会通过这个 helper 读取密钥，从而绕过 OAuth。自定义镜像的 Dockerfile 示例请参阅[进阶指南](advanced-guide-zh-CN.md)。
 
 ## 网络沙箱
 
@@ -91,7 +91,7 @@ sudo /usr/local/bin/init-firewall.sh
 
 ## 进阶：Kubernetes、CI/CD、Argo Workflows
 
-关于 Kubernetes sidecar、Argo Workflows、Job、CronJob 以及 CI/CD 集成，请参阅[进阶指南](advanced-guide.md)（英文）。
+关于 Kubernetes sidecar、Argo Workflows、Job、CronJob 以及 CI/CD 集成，请参阅[进阶指南](advanced-guide-zh-CN.md)。
 
 ## 后续步骤
 

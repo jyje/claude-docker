@@ -37,7 +37,7 @@
 - [クイックスタートと基本的な使い方](docs/getting-started-ja.md) - 環境設定、Docker の使い方、API 認証、クイックテスト
 
 **上級ガイド**
-- [上級ガイド](docs/advanced-guide.md)（英語）- Argo Workflows、Kubernetes Job/CronJob、CI/CD 連携
+- [上級ガイド](docs/advanced-guide-ja.md) - Argo Workflows、Kubernetes Job/CronJob、CI/CD 連携
 
 ## 環境変数
 

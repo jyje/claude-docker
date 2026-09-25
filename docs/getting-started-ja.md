@@ -76,7 +76,7 @@ mkdir -p ~/.claude
 echo '{"apiKeyHelper": "printf %s \"$ANTHROPIC_API_KEY\""}' > ~/.claude/settings.json
 ```
 
-Claude はこの helper 経由でキーを読み取り、OAuth を回避します。カスタムイメージの Dockerfile の例は、[上級ガイド](advanced-guide.md)（英語）を参照してください。
+Claude はこの helper 経由でキーを読み取り、OAuth を回避します。カスタムイメージの Dockerfile の例は、[上級ガイド](advanced-guide-ja.md)を参照してください。
 
 ## ネットワークサンドボックス
 
@@ -91,7 +91,7 @@ sudo /usr/local/bin/init-firewall.sh
 
 ## 上級：Kubernetes、CI/CD、Argo Workflows
 
-Kubernetes のサイドカー、Argo Workflows、Job、CronJob、CI/CD 連携については、[上級ガイド](advanced-guide.md)（英語）を参照してください。
+Kubernetes のサイドカー、Argo Workflows、Job、CronJob、CI/CD 連携については、[上級ガイド](advanced-guide-ja.md)を参照してください。
 
 ## 次のステップ
 

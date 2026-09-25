@@ -37,7 +37,7 @@
 - [快速开始与基本用法](docs/getting-started-zh-CN.md) - 环境配置、Docker 用法、API 认证、快速测试
 
 **进阶指南**
-- [进阶指南](docs/advanced-guide.md)（英文）- Argo Workflows、Kubernetes Job/CronJob、CI/CD 集成
+- [进阶指南](docs/advanced-guide-zh-CN.md) - Argo Workflows、Kubernetes Job/CronJob、CI/CD 集成
 
 ## 环境变量
 
