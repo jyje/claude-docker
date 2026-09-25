@@ -25,7 +25,6 @@ jobs:
       actions: write
       checks: read
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Configurable via the repository variable BASELINE_VERSION (Settings > Secrets and variables > Actions > Variables).
       # Falls back to 2.1.34 if the variable is unset.
       BASELINE_VERSION: ${{ vars.BASELINE_VERSION || '2.1.34' }}
@@ -36,8 +35,25 @@ jobs:
       TAG_EXISTS: 'false'
       SHOULD_CREATE_PR: 'false'
     steps:
+      # Branches and PRs created with the default GITHUB_TOKEN do not fire
+      # push or pull_request events, so pr-version-check would never start on
+      # a new version PR by itself. An installation token for the jyje-bot
+      # GitHub App is an ordinary, trusted identity: its pushes and PRs start
+      # the PR workflows right away, with no manual approval.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Export GH_TOKEN for gh CLI steps
+        run: echo "GH_TOKEN=${{ steps.app-token.outputs.token }}" >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -150,16 +166,15 @@ jobs:
             --head version/${{ env.TARGET_VERSION }} \
             --assignee "${{ github.repository_owner }}"
 
-      # PRs created with GITHUB_TOKEN do not fire pull_request events, so the
-      # check would never start on its own. workflow_dispatch is exempt from that
-      # rule, and the resulting check run attaches to the branch head commit,
+      # A PR this run just opened with the jyje-bot token starts pr-version-check
+      # through its own pull_request event. Dispatching here as well would race
+      # that run before its check is registered and start a duplicate, so this
+      # step only heals a version PR that already existed without the check
+      # (for example one opened before this workflow used the App token).
+      # workflow_dispatch attaches the check run to the branch head commit,
       # which is the commit the PR points at.
-      #
-      # This step is idempotent and also runs when the PR already exists, so a
-      # dispatch that failed on an earlier run is healed by the next one instead
-      # of leaving the PR without a version-check status.
       - name: Ensure version check has run on the branch
-        if: env.UPDATE_NEEDED == 'true' && (env.SHOULD_CREATE_PR == 'true' || env.PR_EXISTS == 'true')
+        if: env.UPDATE_NEEDED == 'true' && env.PR_EXISTS == 'true'
         env:
           REPO: ${{ github.repository }}
           BRANCH: version/${{ env.TARGET_VERSION }}
