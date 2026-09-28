@@ -21,15 +21,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      # Needed to dispatch pr-version-check and to see whether it already ran.
-      actions: write
-      checks: read
     env:
-      # Prefer the jyje-bot token (secret JYJE_BOT_TOKEN, a PAT or app token with
-      # contents + pull-requests write). Pushes and PRs made with it fire normal
-      # pull_request events, unlike GITHUB_TOKEN. Falls back to GITHUB_TOKEN.
-      GH_TOKEN: ${{ secrets.JYJE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
-      HAS_BOT_TOKEN: ${{ secrets.JYJE_BOT_TOKEN != '' }}
       # Configurable via the repository variable BASELINE_VERSION (Settings > Secrets and variables > Actions > Variables).
       # Falls back to 2.1.34 if the variable is unset.
       BASELINE_VERSION: ${{ vars.BASELINE_VERSION || '2.1.34' }}
@@ -40,10 +32,25 @@ jobs:
       TAG_EXISTS: 'false'
       SHOULD_CREATE_PR: 'false'
     steps:
+      # PRs and pushes made with the default GITHUB_TOKEN are attributed to
+      # github-actions[bot]: they fire no pull_request events, and GitHub's
+      # bot-PR policy requires a manual approval before checks run. An
+      # installation token of our own GitHub App is a trusted, write-access
+      # identity, so pr-version-check starts on its own.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Export GH_TOKEN for gh CLI steps
+        run: echo "GH_TOKEN=${{ steps.app-token.outputs.token }}" >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          token: ${{ secrets.JYJE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -155,34 +162,3 @@ jobs:
             --base main \
             --head version/${{ env.TARGET_VERSION }} \
             --assignee "${{ github.repository_owner }}"
-
-      # Only needed without the jyje-bot token: PRs created with GITHUB_TOKEN do
-      # not fire pull_request events, so the check would never start on its own. workflow_dispatch is exempt from that
-      # rule, and the resulting check run attaches to the branch head commit,
-      # which is the commit the PR points at.
-      #
-      # This step is idempotent and also runs when the PR already exists, so a
-      # dispatch that failed on an earlier run is healed by the next one instead
-      # of leaving the PR without a version-check status.
-      - name: Ensure version check has run on the branch
-        if: env.HAS_BOT_TOKEN != 'true' && env.UPDATE_NEEDED == 'true' && (env.SHOULD_CREATE_PR == 'true' || env.PR_EXISTS == 'true')
-        env:
-          REPO: ${{ github.repository }}
-          BRANCH: version/${{ env.TARGET_VERSION }}
-        run: |
-          SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha')
-          COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs?check_name=version-check" --jq '.total_count')
-          if [ "$COUNT" -gt 0 ]; then
-            echo "version-check already reported on $SHA, nothing to do."
-            exit 0
-          fi
-          for attempt in 1 2 3; do
-            if gh workflow run pr-version-check.yaml --repo "$REPO" --ref "$BRANCH"; then
-              echo "Dispatched pr-version-check on $BRANCH."
-              exit 0
-            fi
-            echo "Dispatch attempt $attempt failed, retrying in 10s."
-            sleep 10
-          done
-          echo "::error::Could not dispatch pr-version-check on $BRANCH"
-          exit 1
