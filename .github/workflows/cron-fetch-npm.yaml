@@ -25,7 +25,11 @@ jobs:
       actions: write
       checks: read
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Prefer the jyje-bot token (secret JYJE_BOT_TOKEN, a PAT or app token with
+      # contents + pull-requests write). Pushes and PRs made with it fire normal
+      # pull_request events, unlike GITHUB_TOKEN. Falls back to GITHUB_TOKEN.
+      GH_TOKEN: ${{ secrets.JYJE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+      HAS_BOT_TOKEN: ${{ secrets.JYJE_BOT_TOKEN != '' }}
       # Configurable via the repository variable BASELINE_VERSION (Settings > Secrets and variables > Actions > Variables).
       # Falls back to 2.1.34 if the variable is unset.
       BASELINE_VERSION: ${{ vars.BASELINE_VERSION || '2.1.34' }}
@@ -38,6 +42,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.JYJE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -112,8 +118,8 @@ jobs:
       - name: Create new branch and update version
         if: env.SHOULD_CREATE_PR == 'true'
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "jyje-bot"
+          git config --global user.email "jyje-bot@users.noreply.github.com"
 
           # Remove any orphaned remote branch left over from a prior run
           # whose PR creation failed (e.g. transient GitHub API errors),
@@ -150,8 +156,8 @@ jobs:
             --head version/${{ env.TARGET_VERSION }} \
             --assignee "${{ github.repository_owner }}"
 
-      # PRs created with GITHUB_TOKEN do not fire pull_request events, so the
-      # check would never start on its own. workflow_dispatch is exempt from that
+      # Only needed without the jyje-bot token: PRs created with GITHUB_TOKEN do
+      # not fire pull_request events, so the check would never start on its own. workflow_dispatch is exempt from that
       # rule, and the resulting check run attaches to the branch head commit,
       # which is the commit the PR points at.
       #
@@ -159,7 +165,7 @@ jobs:
       # dispatch that failed on an earlier run is healed by the next one instead
       # of leaving the PR without a version-check status.
       - name: Ensure version check has run on the branch
-        if: env.UPDATE_NEEDED == 'true' && (env.SHOULD_CREATE_PR == 'true' || env.PR_EXISTS == 'true')
+        if: env.HAS_BOT_TOKEN != 'true' && env.UPDATE_NEEDED == 'true' && (env.SHOULD_CREATE_PR == 'true' || env.PR_EXISTS == 'true')
         env:
           REPO: ${{ github.repository }}
           BRANCH: version/${{ env.TARGET_VERSION }}
