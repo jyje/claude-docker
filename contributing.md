@@ -118,8 +118,8 @@ English is the source of truth. Write or change the English document first, and 
 |----------|--------|--------|-----------------|----------------|
 | English | `en` | `readme.md` | `docs/getting-started.md` | `docs/advanced-guide.md` |
 | Korean | `ko` | `readme-ko.md` | `docs/getting-started-ko.md` | `docs/advanced-guide-ko.md` |
-| Simplified Chinese | `zh-CN` | `readme-zh-CN.md` | `docs/getting-started-zh-CN.md` | not translated yet, links to English |
-| Japanese | `ja` | `readme-ja.md` | `docs/getting-started-ja.md` | not translated yet, links to English |
+| Simplified Chinese | `zh-CN` | `readme-zh-CN.md` | `docs/getting-started-zh-CN.md` | `docs/advanced-guide-zh-CN.md` |
+| Japanese | `ja` | `readme-ja.md` | `docs/getting-started-ja.md` | `docs/advanced-guide-ja.md` |
 
 ### Adding or updating a translation
 
