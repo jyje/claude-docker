@@ -11,7 +11,6 @@ LABEL org.opencontainers.image.base.name="docker.io/library/node:26-slim"
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.285
 
 # Install basic development tools and iptables/ipset
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -91,6 +90,8 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 
 # Update npm to latest
 RUN npm install -g npm@latest
+
+ARG CLAUDE_CODE_VERSION=2.1.285
 
 # Install Claude Code
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
