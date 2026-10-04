@@ -251,15 +251,25 @@ jobs:
     needs: [ release ]
     runs-on: ubuntu-26.04-arm
     permissions:
-      contents: write
-      pull-requests: read
+      contents: read
     steps:
+      - name: Generate jyje-bot token for branch cleanup
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: read
+
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Delete merged version branches
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           merged_branches=$(gh pr list --state merged --base main --limit 10 --json headRefName --jq '.[].headRefName' | grep '^version/' || true)
           for branch in $merged_branches; do
